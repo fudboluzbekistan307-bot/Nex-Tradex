@@ -111,8 +111,10 @@ export interface PromoSender {
   deleteMessage?(chatId: number, messageId: number): Promise<void>;
 }
 
-function botLink() {
-  return `https://t.me/${process.env.BOT_USERNAME ?? "NexTradexbot"}?start=promo`;
+function botLink(chatId?: number) {
+  // Guruhdagi reklama orqali kirgan o'yinchi avtomatik shu guruh jamoasiga qo'shiladi (guruhlar ligasi)
+  const payload = chatId ? `grp_${chatId}` : "promo";
+  return `https://t.me/${process.env.BOT_USERNAME ?? "NexTradexbot"}?start=${payload}`;
 }
 
 /** Rasm manbai: avval saqlangan file_id (tez), bo'lmasa serverdagi promo.jpg. */
@@ -129,7 +131,7 @@ async function photoSource(): Promise<string | null> {
  */
 export async function sendPromoToChat(chatId: number, sender: PromoSender): Promise<boolean> {
   const text = await getPromoText();
-  const button = { text: "🚀 O'yinni boshlash", url: botLink() };
+  const button = { text: "🚀 O'yinni boshlash", url: botLink(chatId) };
   try {
     // Oldingi reklamani o'chiramiz - guruhda doim faqat bitta (eng yangi) reklama turadi
     if (DELETE_PREVIOUS && sender.deleteMessage) {

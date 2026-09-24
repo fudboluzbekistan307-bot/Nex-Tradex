@@ -406,3 +406,57 @@ CREATE TABLE IF NOT EXISTS bot_settings (
 -- v5.1: reklama oralig'i daqiqalarda + oldingi reklamani o'chirish uchun xabar ID
 ALTER TABLE promo_chats ADD COLUMN IF NOT EXISTS interval_minutes INTEGER NOT NULL DEFAULT 10;
 ALTER TABLE promo_chats ADD COLUMN IF NOT EXISTS last_message_id BIGINT;
+
+-- ====== v6: TOKEN TO'LOVI, IPO, ESLATMALAR, MAVSUM, GURUHLAR, GIVEAWAY, KLANLAR ======
+ALTER TABLE tokens ADD COLUMN IF NOT EXISTS creation_fee NUMERIC(20, 4) NOT NULL DEFAULT 0;
+-- IPO: listed_at kelajakda bo'lsa - savdo shu vaqtgacha yopiq ("Tez orada")
+ALTER TABLE tokens ADD COLUMN IF NOT EXISTS listed_at TIMESTAMP;
+ALTER TABLE tokens ADD COLUMN IF NOT EXISTS launch_notified BOOLEAN NOT NULL DEFAULT true;
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_reminded_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS group_chat_id BIGINT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS clan_id INTEGER;
+CREATE INDEX IF NOT EXISTS idx_users_last_seen ON users(last_seen_at);
+CREATE INDEX IF NOT EXISTS idx_users_group ON users(group_chat_id);
+CREATE INDEX IF NOT EXISTS idx_users_clan ON users(clan_id);
+
+-- Oylik mavsum natijalari
+CREATE TABLE IF NOT EXISTS season_results (
+    id SERIAL PRIMARY KEY,
+    season_key VARCHAR(8) NOT NULL,
+    rank INTEGER NOT NULL,
+    user_id INTEGER REFERENCES users(id),
+    pnl NUMERIC(20, 8) NOT NULL DEFAULT 0,
+    reward NUMERIC(20, 4) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE(season_key, rank)
+);
+
+-- Giveaway (kanal/guruhda "birinchi N kishi +X Nex")
+CREATE TABLE IF NOT EXISTS giveaways (
+    id SERIAL PRIMARY KEY,
+    chat_id BIGINT NOT NULL,
+    message_id BIGINT,
+    amount NUMERIC(20, 4) NOT NULL,
+    max_claims INTEGER NOT NULL,
+    claims_count INTEGER NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS giveaway_claims (
+    id SERIAL PRIMARY KEY,
+    giveaway_id INTEGER NOT NULL REFERENCES giveaways(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE(giveaway_id, user_id)
+);
+
+-- Klanlar
+CREATE TABLE IF NOT EXISTS clans (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(32) NOT NULL,
+    tag VARCHAR(6) NOT NULL UNIQUE,
+    owner_id INTEGER NOT NULL REFERENCES users(id),
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);

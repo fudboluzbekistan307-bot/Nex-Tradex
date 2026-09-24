@@ -7,8 +7,10 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import { webhookCallback } from "grammy";
 import { apiRouter } from "./routes/api";
+import { ipLimiter } from "./middleware/rateLimit";
 import { bot, setupBotMenu, promoSender } from "./bot/bot";
 import { startPromoScheduler } from "./services/promoService";
+import { startJobs } from "./jobs";
 import { startPriceFluctuations, stopPriceFluctuations } from "./services/priceFluctuationService";
 import { ensureSchema } from "./db/ensureSchema";
 import { migrateFromOldDatabase } from "./db/migrateFrom";
@@ -20,7 +22,7 @@ app.disable("x-powered-by");
 app.use(cors());
 app.use(express.json({ limit: "100kb" }));
 
-app.use("/api", apiRouter);
+app.use("/api", ipLimiter, apiRouter);
 
 // /api ostidagi mavjud bo'lmagan yo'llar uchun HTML emas, JSON qaytaramiz -
 // aks holda frontend "Server javobi noto'g'ri formatda" deb chiqarardi.
@@ -84,6 +86,8 @@ async function startBot() {
 
   // Guruh va kanallarga avtomatik reklama
   startPromoScheduler(promoSender);
+  // IPO, eslatmalar, kunlik zaxira, oylik mavsum
+  startJobs();
 }
 
 async function bootstrap() {

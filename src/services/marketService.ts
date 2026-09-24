@@ -56,7 +56,7 @@ export async function listTokensWithStats(opts: {
 }) {
   const sort: MarketSort = opts.sort && ORDER_BY[opts.sort] ? opts.sort : "trend";
   const params: any[] = [];
-  const where: string[] = ["t.is_hidden = false"];
+  const where: string[] = ["t.is_hidden = false", "(t.listed_at IS NULL OR t.listed_at <= NOW())"];
 
   if (opts.search) {
     params.push(`%${opts.search}%`);

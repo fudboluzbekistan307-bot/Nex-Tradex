@@ -19,6 +19,14 @@ const TOTAL_COMMISSION_PCT = 0.0025;
 const CREATOR_COMMISSION_SHARE = 0.001;
 const FROZEN_COMMISSION_SHARE = 0.0015;
 
+/** IPO: savdo ochilish vaqti kelmagan bo'lsa xato. */
+function assertListed(token: any) {
+  if (token.listed_at && new Date(token.listed_at).getTime() > Date.now()) {
+    const min = Math.ceil((new Date(token.listed_at).getTime() - Date.now()) / 60000);
+    throw new Error(`🚀 Bu token IPO'da - savdo ${min} daqiqadan keyin ochiladi`);
+  }
+}
+
 /**
  * Token sotib olish. Butun operatsiya bitta SQL tranzaksiyada bajariladi
  * va qatorlar FOR UPDATE bilan qulflanadi - shu bilan bir vaqtda kelgan
@@ -40,6 +48,7 @@ export async function buyToken(userId: number, tokenId: number, rawAmount: numbe
     if (tokenRes.rows.length === 0) throw new Error("Token topilmadi");
     const token = tokenRes.rows[0];
     if (token.is_hidden) throw new Error("Bu token admin tomonidan bloklangan");
+    assertListed(token);
 
     const newSupplyCheck = Number(token.circulating_supply) + amount;
     if (newSupplyCheck > Number(token.max_supply)) {
@@ -194,6 +203,7 @@ export async function sellToken(userId: number, tokenId: number, rawAmount: numb
     if (tokenRes.rows.length === 0) throw new Error("Token topilmadi");
     const token = tokenRes.rows[0];
     if (token.is_hidden) throw new Error("Bu token admin tomonidan bloklangan");
+    assertListed(token);
 
     const holdingRes = await client.query(
       "SELECT * FROM holdings WHERE user_id = $1 AND token_id = $2 FOR UPDATE",

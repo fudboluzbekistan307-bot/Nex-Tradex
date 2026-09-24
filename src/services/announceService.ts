@@ -34,6 +34,11 @@ async function send(text: string) {
   }
 }
 
+/** Kanalga ixtiyoriy matn (IPO ochilishi va h.k.) */
+export async function announceText(text: string) {
+  await send(text);
+}
+
 export async function announceNewToken(token: { name: string; symbol: string; current_price: any; max_supply: any }, creatorUsername?: string | null) {
   if (!CHAT_ID) return;
   await send(

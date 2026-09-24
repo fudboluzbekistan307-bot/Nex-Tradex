@@ -99,6 +99,8 @@ const BADGES: (Badge & { test: (s: any) => boolean })[] = [
   { id: "streak_30", emoji: "☄️", title: "Temir iroda", desc: "30 kunlik seriya", test: (s) => s.maxStreak >= 30 },
   { id: "inviter", emoji: "👥", title: "Sardor", desc: "5 ta do'st taklif qilish", test: (s) => s.referrals >= 5 },
   { id: "champion", emoji: "🏆", title: "Chempion", desc: "Ligada top-3", test: (s) => s.podiums >= 1 },
+  { id: "season", emoji: "👑", title: "Mavsum qahramoni", desc: "Oylik mavsumda top-3", test: (s) => s.seasons >= 1 },
+  { id: "clan", emoji: "🛡️", title: "Jamoa", desc: "Klanga a'zo bo'lish", test: (s) => s.clan >= 1 },
 ];
 
 export async function getAchievements(userId: number) {
@@ -110,6 +112,8 @@ export async function getAchievements(userId: number) {
        (SELECT COUNT(*)::int FROM users WHERE referred_by = $1 AND referral_rewarded) AS referrals,
        (SELECT COUNT(*)::int FROM league_payouts WHERE user_id = $1 AND rank BETWEEN 1 AND 3) AS podiums,
        (SELECT COUNT(*)::int FROM wheel_spins WHERE user_id = $1) AS spins,
+       (SELECT COUNT(*)::int FROM season_results WHERE user_id = $1 AND rank BETWEEN 1 AND 3) AS seasons,
+       (CASE WHEN u.clan_id IS NOT NULL THEN 1 ELSE 0 END) AS clan,
        u.max_streak, u.daily_streak, u.nex_trade_balance
      FROM users u WHERE u.id = $1`,
     [userId]
@@ -122,11 +126,13 @@ export async function getAchievements(userId: number) {
     pro: r.pro,
     referrals: r.referrals,
     podiums: r.podiums,
+    seasons: r.seasons,
+    clan: r.clan,
     maxStreak: Math.max(Number(r.max_streak), Number(r.daily_streak)),
     balance: Number(r.nex_trade_balance),
   };
   // Tajriba (XP): faollik uchun ochko
-  const xp = s.trades * 10 + s.created * 50 + s.referrals * 100 + s.maxStreak * 20 + s.podiums * 300 + r.spins * 5;
+  const xp = s.trades * 10 + s.created * 50 + s.referrals * 100 + s.maxStreak * 20 + s.podiums * 300 + s.seasons * 1000 + r.spins * 5;
   // Daraja: har keyingi daraja ko'proq XP talab qiladi (100, 400, 900, ...)
   const level = Math.floor(Math.sqrt(xp / 100)) + 1;
   const curLevelXp = (level - 1) ** 2 * 100;

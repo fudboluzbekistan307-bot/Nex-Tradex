@@ -16,7 +16,7 @@ import { pool } from "./pool";
  */
 
 // Tartib muhim: avval boshqalar bog'liq bo'lgan jadvallar
-const TABLES = [
+export const TABLES = [
   "users",
   "tokens",
   "holdings",
@@ -43,6 +43,10 @@ const TABLES = [
   "limit_orders",
   "promo_chats",
   "bot_settings",
+  "season_results",
+  "giveaways",
+  "giveaway_claims",
+  "clans",
 ];
 
 const BATCH = 500;

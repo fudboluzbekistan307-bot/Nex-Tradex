@@ -59,3 +59,11 @@ src/
 - Mini App frontend (React + Telegram WebApp SDK) — hali qo'shilmagan
 - Admin panel va monitoring
 - Loyiha kattalashganda: litsenziyalash va Telegram bilan rasmiy hamkorlik
+
+## Bot buyruqlari
+
+**Hamma uchun:** /start, /kunlik, /hamyon, /liga, /top, /narx UZB, /guruhlar, /referral
+**Guruhda:** /qoshil (guruh jamoasiga qo'shilish), guruh adminlari uchun /reklama_vaqt 30, /reklama_stop, /reklama_start
+**Inline:** istalgan chatda `@NexTradexbot UZB` (BotFather'da /setinline yoqilgan bo'lishi kerak)
+**Admin:** /statistika, /xabar, /giveaway 50 100, /ban, /unban, /tokenochir, /izohochir,
+/reklama_matn, /reklama_rasm, /reklama_test, /reklamalar, /reklama_hozir, /zaxira, /tiklash

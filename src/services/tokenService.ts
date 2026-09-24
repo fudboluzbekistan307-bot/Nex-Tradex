@@ -6,27 +6,76 @@ const DEFAULT_CURVE_K = 1.5;
 const MAX_SUPPLY_LIMIT = 10000;
 const MIN_SUPPLY_LIMIT = 10;
 
+// Token yaratish narxi (Nex Trade). Bu pul "muzlatilgan fond"ga tushadi - admin
+// uni haftalik yechib oladi. Tekin bo'lsa, bozor keraksiz tokenlarga to'lib ketadi.
+export const TOKEN_CREATE_FEE = Number(process.env.TOKEN_CREATE_FEE ?? 50);
+// IPO: token savdosi shuncha daqiqadan keyin ochiladi (odamlar oldindan kutib turadi)
+export const IPO_DELAY_MINUTES = Number(process.env.IPO_DELAY_MINUTES ?? 60);
+
 export async function createToken(
   ownerId: number,
   name: string,
   symbol: string,
   maxSupply: number,
-  imageUrl?: string | null
+  imageUrl?: string | null,
+  ipo = false
 ) {
   if (maxSupply < MIN_SUPPLY_LIMIT || maxSupply > MAX_SUPPLY_LIMIT) {
     throw new Error(`max_supply ${MIN_SUPPLY_LIMIT} dan ${MAX_SUPPLY_LIMIT} gacha bo'lishi kerak`);
   }
 
   const basePrice = generateInitialPrice(symbol.toUpperCase());
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const u = await client.query("SELECT nex_trade_balance FROM users WHERE id = $1 FOR UPDATE", [ownerId]);
+    if (!u.rows[0]) throw new Error("Foydalanuvchi topilmadi");
+    if (Number(u.rows[0].nex_trade_balance) < TOKEN_CREATE_FEE) {
+      throw new Error(`Token yaratish uchun ${TOKEN_CREATE_FEE} Nex Trade kerak. Balansingizda yetarli emas`);
+    }
 
-  const result = await pool.query(
-    `INSERT INTO tokens (owner_id, name, symbol, max_supply, circulating_supply, base_price, current_price, curve_k, image_url)
-     VALUES ($1, $2, $3, $4, 0, $5, $5, $6, $7)
-     RETURNING *`,
-    [ownerId, name, symbol.toUpperCase(), maxSupply, basePrice, DEFAULT_CURVE_K, imageUrl ?? null]
+    const result = await client.query(
+      `INSERT INTO tokens (owner_id, name, symbol, max_supply, circulating_supply, base_price, current_price, curve_k, image_url,
+                           creation_fee, listed_at, launch_notified)
+       VALUES ($1, $2, $3, $4, 0, $5, $5, $6, $7, $8,
+               CASE WHEN $9::boolean THEN NOW() + ($10::int * INTERVAL '1 minute') ELSE NULL END, NOT $9::boolean)
+       RETURNING *`,
+      [ownerId, name, symbol.toUpperCase(), maxSupply, basePrice, DEFAULT_CURVE_K, imageUrl ?? null, TOKEN_CREATE_FEE, ipo, IPO_DELAY_MINUTES]
+    );
+    const token = result.rows[0];
+
+    if (TOKEN_CREATE_FEE > 0) {
+      const upd = await client.query(
+        "UPDATE users SET nex_trade_balance = nex_trade_balance - $1 WHERE id = $2 RETURNING nex_trade_balance",
+        [TOKEN_CREATE_FEE, ownerId]
+      );
+      await recordBalanceSnapshot(ownerId, upd.rows[0].nex_trade_balance, client);
+      await client.query(
+        `INSERT INTO frozen_balances (token_id, amount, updated_at) VALUES ($1, $2, NOW())
+         ON CONFLICT (token_id) DO UPDATE SET amount = frozen_balances.amount + $2, updated_at = NOW()`,
+        [token.id, TOKEN_CREATE_FEE]
+      );
+    }
+    await client.query("COMMIT");
+    return token;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/** IPO kutilayotgan ("Tez orada") tokenlar. */
+export async function listUpcomingTokens() {
+  const { rows } = await pool.query(
+    `SELECT t.*, u.username AS creator_username,
+            (SELECT COUNT(*)::int FROM token_alerts a WHERE a.token_id = t.id) AS waiting
+     FROM tokens t JOIN users u ON u.id = t.owner_id
+     WHERE t.is_hidden = false AND t.listed_at > NOW()
+     ORDER BY t.listed_at ASC LIMIT 20`
   );
-
-  return result.rows[0];
+  return rows;
 }
 
 export async function getToken(tokenId: number) {

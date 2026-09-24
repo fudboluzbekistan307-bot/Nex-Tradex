@@ -537,6 +537,38 @@
   .lang-btn{ flex:1; background:var(--bg-elevated); border:1px solid var(--border); color:var(--muted); border-radius:10px; padding:9px; font-weight:700; font-size:13px; }
   .lang-btn.active{ border-color:var(--gold); color:var(--gold); }
 
+/* ====== v6: IPO, liga bo'limlari, klan, qo'llanma, admin statistika ====== */
+  .league-tabs{ display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; }
+  .league-tabs::-webkit-scrollbar{ display:none; }
+  .league-tab{ flex:1; white-space:nowrap; background:var(--card); border:1px solid var(--border); color:var(--muted); border-radius:10px; padding:9px 10px; font-weight:700; font-size:12.5px; }
+  .league-tab.active{ background:var(--gold); color:#1a1200; border-color:var(--gold); }
+  .upcoming-card{ flex-shrink:0; width:170px; border-radius:16px; padding:13px; background:linear-gradient(160deg, rgba(139,124,255,.22), rgba(139,124,255,.04)); border:1px solid var(--violet); }
+  .upcoming-card .u-name{ font-weight:700; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .upcoming-card .u-time{ font-family:'Space Grotesk',sans-serif; font-weight:700; color:var(--violet); font-size:15px; margin:6px 0 8px; }
+  .upcoming-card button{ width:100%; background:var(--violet); color:#fff; border:none; border-radius:9px; padding:7px; font-weight:700; font-size:12px; }
+  .upcoming-card button:disabled{ background:var(--bg-elevated); color:var(--muted); }
+  .check-row{ display:flex; align-items:flex-start; gap:10px; background:var(--bg-elevated); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:14px; }
+  .check-row input{ width:20px; height:20px; margin-top:2px; accent-color:var(--violet); flex-shrink:0; }
+  .clan-card{ background:linear-gradient(160deg, rgba(0,214,143,.14), rgba(0,214,143,.02)); border:1px solid var(--up); border-radius:16px; padding:16px; margin-bottom:12px; }
+  .clan-tag{ display:inline-block; font-family:'Space Grotesk',sans-serif; font-weight:700; background:var(--up); color:#00140d; border-radius:6px; padding:1px 7px; font-size:12px; margin-right:6px; }
+  .onb-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:300; display:none; align-items:center; justify-content:center; padding:20px; }
+  .onb-backdrop.show{ display:flex; }
+  .onb-card{ background:var(--bg-elevated); border:1px solid var(--gold); border-radius:22px; padding:26px 20px 20px; width:100%; max-width:360px; text-align:center; }
+  .onb-emoji{ font-size:54px; margin-bottom:10px; }
+  .onb-title{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:20px; margin-bottom:8px; }
+  .onb-text{ font-size:14px; color:var(--muted); line-height:1.55; margin-bottom:18px; }
+  .onb-dots{ display:flex; justify-content:center; gap:6px; margin-bottom:16px; }
+  .onb-dots i{ width:8px; height:8px; border-radius:50%; background:var(--border); }
+  .onb-dots i.on{ background:var(--gold); width:22px; border-radius:4px; }
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat-box{ background:var(--bg-elevated); border:1px solid var(--border); border-radius:12px; padding:10px 12px; }
+  .stat-box .n{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:19px; color:var(--gold); }
+  .stat-box .l{ font-size:11px; color:var(--muted); }
+  .bars{ display:flex; align-items:flex-end; gap:4px; height:90px; margin-top:10px; }
+  .bars div{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .bars b{ display:block; width:100%; background:linear-gradient(180deg, var(--gold), var(--ember)); border-radius:4px 4px 0 0; min-height:2px; }
+  .bars span{ font-size:8.5px; color:var(--muted); margin-top:3px; }
+
 </style>
 </head>
 <body>
@@ -570,6 +602,8 @@
   <section class="screen active" id="screen-market">
     <input class="search-box" id="search-input" type="text" placeholder="🔍 Token nomi yoki belgisi bo'yicha qidirish" autocomplete="off" />
     <div class="search-history hidden" id="search-history"></div>
+    <div class="section-title" id="upcoming-title" style="display:none;">🚀 Tez orada (IPO)</div>
+    <div id="upcoming-list" class="featured-list"></div>
     <div class="section-title" id="featured-title" style="display:none;">🐋 Gigant tokenlar</div>
     <div id="featured-list" class="featured-list"></div>
     <div class="section-title" id="leaderboard-title">Top tokenlar</div>
@@ -629,7 +663,15 @@
         <div class="hint">Narx boshlang'ich holatda 0.0001–0.01 UZS oralig'ida avtomatik belgilanadi va faqat foydalanuvchilarning savdo faoliyatiga qarab o'zgaradi.</div>
         <div class="hint">💰 Tokeningiz bilan qilingan har bir savdodan sizga <b>0.1%</b> bonus tushadi. O'zingiz esa tokeningizning maksimal <b>25%</b> igacha qismiga egalik qila olasiz (boshqa foydalanuvchilar uchun bu chegara 10%).</div>
       </div>
-      <button class="primary" id="create-btn">Token yaratish</button>
+      <label class="check-row">
+          <input type="checkbox" id="new-ipo" />
+          <div>
+            <div style="font-weight:700;font-size:13.5px;">🚀 IPO bilan chiqarish</div>
+            <div class="hint" style="margin-top:2px;" id="ipo-hint">Savdo 1 soatdan keyin ochiladi. Token "Tez orada" bo'limida turadi, odamlar kutib turib, ochilishi bilan birinchi bo'lib sotib olishga shoshiladi.</div>
+          </div>
+        </label>
+        <div class="hint" id="create-fee-hint" style="margin:-4px 0 12px;">💎 Token yaratish narxi: <b>50 Nex</b></div>
+        <button class="primary" id="create-btn">Token yaratish</button>
     </div>
   </section>
 
@@ -713,6 +755,13 @@
   </section>
 
   <section class="screen" id="screen-league">
+    <div class="league-tabs" id="league-tabs">
+      <button class="league-tab active" data-lg="weekly">🏆 Hafta</button>
+      <button class="league-tab" data-lg="season">👑 Mavsum</button>
+      <button class="league-tab" data-lg="groups">🏟 Guruhlar</button>
+      <button class="league-tab" data-lg="clans">🛡️ Klanlar</button>
+    </div>
+    <div id="lg-weekly">
     <div class="league-hero">
       <div style="font-size:13px;font-weight:700;letter-spacing:.06em;color:#FFC857;">🏆 HAFTALIK LIGA</div>
       <div class="big" id="league-countdown">—</div>
@@ -728,6 +777,34 @@
     <div class="section-title">Joriy hafta top-10</div>
     <div id="league-list"></div>
     <div id="league-last" style="margin-top:14px;"></div>
+    </div>
+
+    <div id="lg-season" style="display:none;">
+      <div class="league-hero" style="background:linear-gradient(160deg,#2a1440,#10081c 70%);border-color:var(--violet);">
+        <div style="font-size:13px;font-weight:700;letter-spacing:.06em;color:#c9b8ff;">👑 OYLIK MAVSUM</div>
+        <div class="big" id="season-countdown" style="color:#c9b8ff;">—</div>
+        <div class="sub">Oy davomida eng ko'p foyda qilgan 3 kishi katta mukofot va <b>👑 Mavsum qahramoni</b> nishonini oladi. Kamida 5 ta sotuv kerak.</div>
+      </div>
+      <div class="section-title">Mukofotlar</div>
+      <div class="prize-grid" id="season-prizes" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px;"></div>
+      <div class="section-title">Shu oy top-10</div>
+      <div id="season-list"></div>
+      <div id="season-last" style="margin-top:14px;"></div>
+    </div>
+
+    <div id="lg-groups" style="display:none;">
+      <div class="card">
+        <div style="font-weight:700;">🏟 Guruhlar ligasi</div>
+        <div class="hint">Bot qo'shilgan guruhlar bellashadi: qaysi guruh a'zolari shu hafta ko'proq foyda qilgan bo'lsa, o'sha guruh yuqorida. Guruhingizga qo'shilish uchun guruhda <b>/qoshil</b> yozing.</div>
+      </div>
+      <div id="groups-list"></div>
+    </div>
+
+    <div id="lg-clans" style="display:none;">
+      <div id="my-clan"></div>
+      <div class="section-title">Klanlar reytingi (shu hafta)</div>
+      <div id="clans-list"></div>
+    </div>
   </section>
 
   <div class="detail-overlay" id="wallet-overlay">
@@ -851,6 +928,13 @@
   </div>
 
   <section class="screen" id="screen-admin">
+    <div class="card" id="admin-stats-card">
+      <div style="font-weight:700;font-size:15px;margin-bottom:10px;">📊 Statistika</div>
+      <div class="stat-grid" id="admin-stat-grid"></div>
+      <div class="hint" style="margin-top:12px;">Yangi o'yinchilar (14 kun)</div>
+      <div class="bars" id="admin-bars"></div>
+      <div class="hint" id="admin-referrers" style="margin-top:10px;"></div>
+    </div>
     <div class="card">
       <div style="font-weight:700;font-size:15px;margin-bottom:4px;">❄️ Muzlatilgan mablag' fondi</div>
       <div class="hint">Har bir savdo komissiyasining 0.15% qismi shu yerga yig'iladi. Faqat siz (admin) botni/mini-appni rivojlantirish uchun bu yerdan yechib olishingiz mumkin.</div>
@@ -901,6 +985,17 @@
     <div id="wheel-result" style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;min-height:30px;color:var(--gold);"></div>
     <button class="primary" id="wheel-spin-btn" style="margin-top:10px;">Aylantirish!</button>
     <div class="hint" id="wheel-status" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+<div class="onb-backdrop" id="onb">
+  <div class="onb-card">
+    <div class="onb-emoji" id="onb-emoji">👋</div>
+    <div class="onb-title" id="onb-title">—</div>
+    <div class="onb-text" id="onb-text">—</div>
+    <div class="onb-dots" id="onb-dots"></div>
+    <button class="primary" id="onb-next">Keyingi</button>
+    <button class="ghost" id="onb-skip" style="border:none;color:var(--muted);font-size:13px;">O'tkazib yuborish</button>
   </div>
 </div>
 
@@ -1109,8 +1204,8 @@
       document.getElementById("screen-"+btn.dataset.tab).classList.add("active");
       if(btn.dataset.tab === "portfolio") loadPortfolio();
       if(btn.dataset.tab === "profile") loadProfile();
-      if(btn.dataset.tab === "league") loadLeague();
-      if(btn.dataset.tab === "admin"){ loadAdminFrozen(); loadAdminWithdrawStatus(); }
+      if(btn.dataset.tab === "league") document.querySelector(`#league-tabs [data-lg="${currentLeagueTab}"]`).click();
+      if(btn.dataset.tab === "admin"){ loadAdminFrozen(); loadAdminWithdrawStatus(); loadAdminStats(); }
     });
   });
 
@@ -1251,7 +1346,8 @@
     });
     setBalance(currentUser.nex_trade_balance);
 
-    if(currentUser.is_new){
+    if(currentUser.is_new && !window.__welcomeShown){
+      window.__welcomeShown = true;
       document.getElementById("welcome-popup-amount-num").textContent = fmt(currentUser.nex_trade_balance);
       document.getElementById("welcome-popup-backdrop").classList.add("show");
       tg?.HapticFeedback?.notificationOccurred?.("success");
@@ -1408,7 +1504,9 @@
       document.getElementById("featured-list").style.display = isSearching ? "none" : "flex";
 
       if(isSearching) saveSearchHistory(query.trim());
-      else loadFeaturedTokens();
+      else { loadFeaturedTokens(); loadUpcoming(); }
+      document.getElementById("upcoming-list").style.display = isSearching ? "none" : "flex";
+      if(isSearching) document.getElementById("upcoming-title").style.display = "none";
     }catch(e){ toast(friendlyError(e)); }
   }
 
@@ -2273,13 +2371,15 @@
     const btn = document.getElementById("create-btn");
     const restore = setLoading(btn, "Yaratilmoqda...");
     try{
-      const body = { owner_id: currentUser.id, name, symbol, max_supply: supply };
+      const body = { owner_id: currentUser.id, name, symbol, max_supply: supply, ipo: document.getElementById("new-ipo").checked };
       if(imageUrl) body.image_url = imageUrl;
       await api("/tokens", {
         method:"POST",
         body: JSON.stringify(body)
       });
-      toast("Token yaratildi!");
+      toast(body.ipo ? tr("🚀 Token IPO'ga chiqdi! Savdo ochilganda xabar olasiz") : tr("Token yaratildi!"));
+      document.getElementById("new-ipo").checked = false;
+      initUser().catch(()=>{});
       document.getElementById("new-name").value = "";
       document.getElementById("new-symbol").value = "";
       document.getElementById("new-image").value = "";
@@ -2781,7 +2881,7 @@
     "Umumiy foyda/zarar":"Общая прибыль/убыток","📤 Ulashish":"📤 Поделиться","Balans tarixi":"История баланса",
     "Token nomi":"Название токена","Belgisi (symbol)":"Символ","Rasm (logotip) havolasi - ixtiyoriy":"Ссылка на логотип (необязательно)",
     "Maksimal miqdor (max 10 000)":"Максимальное количество (до 10 000)","Token yaratish":"Создать токен",
-    "Nex Trade":"Nex Trade","Yaratilgan token":"Создано токенов","Taklif qilingan":"Приглашено",
+    "Yaratilgan token":"Создано токенов","Taklif qilingan":"Приглашено",
     "🔥 Kunlik bonus seriyasi":"🔥 Серия ежедневных бонусов","Olish":"Получить","✅ Olindi":"✅ Получено","🎯 Vazifalar":"🎯 Задания",
     "🎡 Omad g'ildiragi":"🎡 Колесо удачи","👥 Do'stlarni taklif qiling":"👥 Пригласите друзей","👛 Mening hamyonim":"👛 Мой кошелёк",
     "💳 Nex Tradex to'ldirish / chiqarish":"💳 Пополнить / вывести Nex","🎁 Bonuslar":"🎁 Бонусы","💎 PRO token 🔒":"💎 PRO токен 🔒",
@@ -2805,7 +2905,7 @@
     "Birinchi savdoingni qil":"Сделай первую сделку","O'z tokeningni yarat":"Создай свой токен","Do'stingni taklif qil (u savdo qilsin)":"Пригласи друга (пусть торгует)",
     "Bugun 3 ta savdo qil":"Сделай 3 сделки сегодня","Bugun foyda bilan sot":"Продай с прибылью сегодня","Bitta tokenni sevimlilarga qo'sh":"Добавь токен в избранное",
     "Birinchi qadam":"Первый шаг","Treyder":"Трейдер","Birja bo'risi":"Волк биржи","Yaratuvchi ":"Создатель","Kit":"Кит","Olov":"Огонь",
-    "Temir iroda":"Железная воля","Sardor":"Лидер","Chempion":"Чемпион","PRO":"PRO",
+    "Temir iroda":"Железная воля","Sardor":"Лидер","Chempion":"Чемпион",
     "Birinchi savdo":"Первая сделка","10 ta savdo":"10 сделок","100 ta savdo":"100 сделок","Token yaratish ":"Создание токена",
     "PRO tokenga ega bo'lish":"Иметь PRO токен","10 000 Nex balans":"Баланс 10 000 Nex","7 kunlik seriya":"Серия 7 дней","30 kunlik seriya":"Серия 30 дней",
     "5 ta do'st taklif qilish":"Пригласить 5 друзей","Ligada top-3":"Топ-3 в лиге",
@@ -2845,9 +2945,9 @@
     let n;
     while((n = walker.nextNode())){
       const raw = n.nodeValue, t = raw.trim();
-      if(t && RU[t]) n.nodeValue = raw.replace(t, RU[t]);
+      if(t && RU[t] && RU[t] !== t) n.nodeValue = raw.replace(t, RU[t]);
     }
-    if(root.querySelectorAll) root.querySelectorAll("input[placeholder]").forEach(i=>{ if(RU[i.placeholder]) i.placeholder = RU[i.placeholder]; });
+    if(root.querySelectorAll) root.querySelectorAll("input[placeholder]").forEach(i=>{ if(RU[i.placeholder] && RU[i.placeholder] !== i.placeholder) i.placeholder = RU[i.placeholder]; });
   }
   if(LANG === "ru"){
     translateNode(document.body);
@@ -2855,9 +2955,10 @@
       for(const m of ms){
         m.addedNodes.forEach(nd=>{
           if(nd.nodeType === 1) translateNode(nd);
-          else if(nd.nodeType === 3 && RU[nd.nodeValue.trim()]) nd.nodeValue = RU[nd.nodeValue.trim()];
+          else if(nd.nodeType === 3){ const k = nd.nodeValue.trim(); if(RU[k] && RU[k] !== k) nd.nodeValue = RU[k]; }
         });
-        if(m.type === "characterData" && RU[m.target.nodeValue?.trim()]) m.target.nodeValue = RU[m.target.nodeValue.trim()];
+        // Faqat haqiqatan boshqa matnga almashadigan so'zlar - aks holda cheksiz aylanish bo'ladi
+        if(m.type === "characterData"){ const k = m.target.nodeValue?.trim(); if(k && RU[k] && RU[k] !== k) m.target.nodeValue = RU[k]; }
       }
     }).observe(document.body, { childList: true, subtree: true, characterData: true });
   }
@@ -2874,6 +2975,242 @@
     });
   });
 
+
+  // ================================================================
+  // ====== v6: QO'LLANMA, IPO, LIGA BO'LIMLARI, KLAN, ADMIN ======
+  // ================================================================
+
+  // --- Yangi o'yinchi uchun qo'llanma
+  const ONB_STEPS = [
+    { e: "🪙", t: "Tokenlarni sotib ol", x: "Bozor bo'limida istalgan tokenni tanlang va arzon paytida sotib oling. Narxlar har 10 soniyada o'zgaradi!" },
+    { e: "📈", t: "Qimmatlaganda sot", x: "Narx oshganda soting - farqi sizning foydangiz. Foyda bilan sotganlar haftalik ligada mukofot oladi 🏆" },
+    { e: "🎯", t: "Bonuslarni yig'", x: "Profil bo'limida: kunlik bonus seriyasi, omad g'ildiragi va vazifalar. Har kuni kiring - bonus o'sib boradi!" },
+    { e: "🛠️", t: "O'z tokeningni yarat", x: "Yaratish bo'limida o'z tokeningizni chiqaring. Har bir savdodan sizga komissiya tushadi 💰" },
+  ];
+  let onbStep = 0;
+  function renderOnb(){
+    const s = ONB_STEPS[onbStep];
+    document.getElementById("onb-emoji").textContent = s.e;
+    document.getElementById("onb-title").textContent = tr(s.t);
+    document.getElementById("onb-text").textContent = tr(s.x);
+    document.getElementById("onb-dots").innerHTML = ONB_STEPS.map((_,i)=>`<i class="${i === onbStep ? "on" : ""}"></i>`).join("");
+    document.getElementById("onb-next").textContent = onbStep === ONB_STEPS.length - 1 ? tr("Boshladik! 🚀") : tr("Keyingi");
+  }
+  function finishOnb(){
+    document.getElementById("onb").classList.remove("show");
+    try{ localStorage.setItem("nextrade-onb-done", "1"); }catch(e){}
+  }
+  function startOnboarding(){
+    try{ if(localStorage.getItem("nextrade-onb-done")) return; }catch(e){}
+    onbStep = 0; renderOnb();
+    document.getElementById("onb").classList.add("show");
+  }
+  document.getElementById("onb-next").addEventListener("click", ()=>{
+    if(onbStep < ONB_STEPS.length - 1){ onbStep++; renderOnb(); } else finishOnb();
+  });
+  document.getElementById("onb-skip").addEventListener("click", finishOnb);
+  // Xush kelibsiz oynasi yopilgach qo'llanma boshlanadi
+  document.getElementById("welcome-popup-btn").addEventListener("click", ()=> setTimeout(startOnboarding, 250));
+
+  // --- Token yaratish narxi va IPO
+  async function loadCreateInfo(){
+    try{
+      const i = await api("/token-create-info");
+      document.getElementById("create-fee-hint").innerHTML = `💎 ${tr("Token yaratish narxi")}: <b>${fmt(i.fee)} Nex</b>`;
+      document.getElementById("create-btn").textContent = `${tr("Token yaratish")} · ${fmt(i.fee)} Nex`;
+      const h = i.ipoDelayMinutes >= 60 ? `${Math.round(i.ipoDelayMinutes/60)} soat` : `${i.ipoDelayMinutes} daqiqa`;
+      document.getElementById("ipo-hint").textContent =
+        `Savdo ${h}dan keyin ochiladi. Token "Tez orada" bo'limida turadi, odamlar kutib turib, ochilishi bilan birinchi bo'lib sotib olishga shoshiladi.`;
+    }catch(e){ /* jim */ }
+  }
+
+  // --- Tez orada (IPO) tokenlar
+  let upcomingTimer = null;
+  async function loadUpcoming(){
+    const wrap = document.getElementById("upcoming-list");
+    const title = document.getElementById("upcoming-title");
+    try{
+      const list = await api("/tokens/upcoming");
+      if(!list.length){ title.style.display = "none"; wrap.innerHTML = ""; return; }
+      title.style.display = "block";
+      wrap.innerHTML = list.map(t=>`
+        <div class="upcoming-card" data-id="${t.id}" data-name="${esc(t.name)}" data-symbol="${esc(t.symbol)}" data-price="${t.current_price}">
+          <div class="u-name">${esc(t.name)}</div>
+          <div class="hint" style="margin:0;">$${esc(t.symbol)} · 👥 ${t.waiting}</div>
+          <div class="u-time" data-listed="${esc(t.listed_at)}">—</div>
+          <button data-remind="${t.id}">🔔 ${tr("Eslat")}</button>
+        </div>`).join("");
+      const tick = ()=> wrap.querySelectorAll("[data-listed]").forEach(el=>{
+        const ms = new Date(el.dataset.listed).getTime() - Date.now();
+        el.textContent = ms <= 0 ? tr("🟢 Ochildi!") : `⏳ ${Math.floor(ms/60000)}:${String(Math.floor(ms/1000)%60).padStart(2,"0")}`;
+      });
+      tick();
+      if(upcomingTimer) clearInterval(upcomingTimer);
+      upcomingTimer = setInterval(tick, 1000);
+      wrap.querySelectorAll("[data-remind]").forEach(b=>{
+        b.addEventListener("click", async (e)=>{
+          e.stopPropagation();
+          try{
+            await api("/alerts", { method: "POST", body: JSON.stringify({ token_id: Number(b.dataset.remind), threshold_pct: 5 }) });
+            b.disabled = true; b.textContent = tr("✅ Eslatiladi");
+            toast(tr("Savdo ochilganda bot xabar beradi 🔔"));
+          }catch(err){ toast(friendlyError(err)); }
+        });
+      });
+      wrap.querySelectorAll(".upcoming-card").forEach(c=> c.addEventListener("click", ()=> openTokenDetail(c.dataset)));
+    }catch(e){ /* jim */ }
+  }
+
+  // --- Liga bo'limlari
+  let currentLeagueTab = "weekly";
+  document.querySelectorAll("#league-tabs .league-tab").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      document.querySelectorAll("#league-tabs .league-tab").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      currentLeagueTab = b.dataset.lg;
+      ["weekly","season","groups","clans"].forEach(k=> document.getElementById("lg-" + k).style.display = k === currentLeagueTab ? "" : "none");
+      if(currentLeagueTab === "weekly") loadLeague();
+      if(currentLeagueTab === "season") loadSeason();
+      if(currentLeagueTab === "groups") loadGroupsLeague();
+      if(currentLeagueTab === "clans") loadClans();
+    });
+  });
+  const MEDALS = ["🥇","🥈","🥉"];
+
+  async function loadSeason(){
+    try{
+      const S = await api("/season");
+      const ms = Math.max(0, new Date(S.endsAt).getTime() - Date.now());
+      document.getElementById("season-countdown").textContent = `${S.key} · ⏳ ${Math.floor(ms/86400000)} ${tr("kun")} ${Math.floor(ms/3600000)%24} ${tr("soat")}`;
+      document.getElementById("season-prizes").innerHTML = S.prizes.map((p,i)=>`<div class="prize-cell"><b>${fmt(p)}</b>${i+1}-o'rin</div>`).join("");
+      document.getElementById("season-list").innerHTML = S.top.length ? S.top.map(u=>`
+        <div class="league-row">
+          <div class="league-rank">${MEDALS[u.rank-1] || u.rank}</div>
+          <div class="league-name">${u.username ? "@" + esc(u.username) : "—"}</div>
+          <div><div class="league-pnl">+${fmt(u.pnl)}</div>${u.prize ? `<div class="league-prize">🎁 ${fmt(u.prize)}</div>` : ""}</div>
+        </div>`).join("")
+        : `<div class="empty"><div class="empty-icon">👑</div><div class="empty-title">${tr("Hali hech kim yo'q")}</div></div>`;
+      document.getElementById("season-last").innerHTML = S.lastChampions.length
+        ? `<div class="section-title">${tr("O'tgan mavsum qahramonlari")}</div>` + S.lastChampions.map(w=>
+            `<div class="holder-row"><span>${MEDALS[w.rank-1] || w.rank} ${w.username ? "@" + esc(w.username) : "—"}</span><span class="num" style="color:var(--gold);">+${fmt(w.reward)}</span></div>`).join("")
+        : "";
+    }catch(e){ toast(friendlyError(e)); }
+  }
+
+  async function loadGroupsLeague(){
+    const list = document.getElementById("groups-list");
+    try{
+      const G = await api("/groups/league");
+      list.innerHTML = G.length ? G.map(g=>`
+        <div class="league-row">
+          <div class="league-rank">${MEDALS[g.rank-1] || g.rank}</div>
+          <div class="league-name">${esc(g.title || "Guruh")}<div class="hint" style="margin:0;">👥 ${g.members}</div></div>
+          <div class="league-pnl" style="color:${g.pnl >= 0 ? "var(--up)" : "var(--down)"};">${g.pnl >= 0 ? "+" : ""}${fmt(g.pnl)}</div>
+        </div>`).join("")
+        : `<div class="empty"><div class="empty-icon">🏟</div><div class="empty-title">${tr("Hali guruhlar yo'q")}</div><div class="empty-sub">${tr("Botni guruhingizga qo'shing va /qoshil yozing")}</div></div>`;
+    }catch(e){ toast(friendlyError(e)); }
+  }
+
+  async function loadClans(){
+    const mine = document.getElementById("my-clan");
+    try{
+      const [C, top] = await Promise.all([api(`/user/${currentUser.id}/clan`), api("/clans/top")]);
+      if(C){
+        mine.innerHTML = `
+          <div class="clan-card">
+            <div style="font-weight:700;font-size:16px;"><span class="clan-tag">${esc(C.tag)}</span>${esc(C.name)}</div>
+            <div class="hint">👥 ${C.members.length}/${C.maxMembers} · ${tr("Shu hafta")}: <b style="color:${C.weekPnl >= 0 ? "var(--up)" : "var(--down)"};">${C.weekPnl >= 0 ? "+" : ""}${fmt(C.weekPnl)} Nex</b></div>
+            <div style="margin-top:10px;">${C.members.map(m=>`<div class="holder-row"><span>${m.isOwner ? "👑 " : ""}${m.username ? "@" + esc(m.username) : "—"}</span><span class="num">${m.pnl >= 0 ? "+" : ""}${fmt(m.pnl)}</span></div>`).join("")}</div>
+            <div class="hint" style="margin-top:10px;">${tr("Do'stlaringizni chaqiring")}: <b>${esc(C.tag)}</b> ${tr("belgisi bilan qo'shiladi")}</div>
+            <button class="ghost" id="clan-leave" style="margin-top:10px;">${tr("Klandan chiqish")}</button>
+          </div>`;
+        document.getElementById("clan-leave").onclick = async ()=>{
+          if(!confirm(tr("Klandan chiqasizmi?"))) return;
+          try{ await api("/clans/leave", { method: "POST" }); toast(tr("Klandan chiqdingiz")); loadClans(); }catch(e){ toast(friendlyError(e)); }
+        };
+      }else{
+        mine.innerHTML = `
+          <div class="card">
+            <div style="font-weight:700;margin-bottom:4px;">🛡️ ${tr("Klanga qo'shilish")}</div>
+            <div class="hint" style="margin:0 0 10px;">${tr("Do'stlaringiz bilan jamoa bo'ling - klanlar haftalik foyda bo'yicha bellashadi.")}</div>
+            <div class="comment-form" style="margin-top:0;"><input id="clan-join-tag" placeholder="${tr("Klan belgisi, masalan TOSH")}" maxlength="8" style="text-transform:uppercase;" /><button id="clan-join-btn">➤</button></div>
+          </div>
+          <div class="card">
+            <div style="font-weight:700;margin-bottom:4px;">➕ ${tr("Yangi klan ochish")} · ${fmt(top.fee)} Nex</div>
+            <div class="field" style="margin-top:8px;"><input id="clan-name" placeholder="${tr("Klan nomi")}" maxlength="32" /></div>
+            <div class="field"><input id="clan-tag" placeholder="${tr("Belgi (2-6 harf)")}" maxlength="6" style="text-transform:uppercase;" /></div>
+            <button class="primary" id="clan-create-btn">${tr("Klan ochish")}</button>
+          </div>`;
+        document.getElementById("clan-join-btn").onclick = async ()=>{
+          const tag = document.getElementById("clan-join-tag").value.trim();
+          if(!tag) return;
+          try{ const c = await api("/clans/join", { method: "POST", body: JSON.stringify({ tag }) }); toast(`🛡️ ${c.name}`); loadClans(); }catch(e){ toast(friendlyError(e)); }
+        };
+        document.getElementById("clan-create-btn").onclick = async ()=>{
+          const name = document.getElementById("clan-name").value.trim();
+          const tag = document.getElementById("clan-tag").value.trim();
+          if(!name || !tag){ toast(tr("Nom va belgini kiriting")); return; }
+          const btn = document.getElementById("clan-create-btn");
+          const restore = setLoading(btn, "");
+          try{
+            await api("/clans", { method: "POST", body: JSON.stringify({ name, tag }) });
+            toast(tr("🛡️ Klan ochildi!"));
+            await initUser();
+            loadClans();
+          }catch(e){ toast(friendlyError(e)); restore(); }
+        };
+      }
+      document.getElementById("clans-list").innerHTML = top.clans.length ? top.clans.map(c=>`
+        <div class="league-row">
+          <div class="league-rank">${MEDALS[c.rank-1] || c.rank}</div>
+          <div class="league-name"><span class="clan-tag">${esc(c.tag)}</span>${esc(c.name)}<div class="hint" style="margin:0;">👥 ${c.members}</div></div>
+          <div class="league-pnl" style="color:${c.pnl >= 0 ? "var(--up)" : "var(--down)"};">${c.pnl >= 0 ? "+" : ""}${fmt(c.pnl)}</div>
+        </div>`).join("")
+        : `<div class="hint" style="padding:10px 0;">${tr("Hali klanlar yo'q - birinchi bo'ling!")}</div>`;
+    }catch(e){ toast(friendlyError(e)); }
+  }
+
+  // --- Admin statistika
+  async function loadAdminStats(){
+    try{
+      const s = await api("/admin/stats");
+      const boxes = [
+        ["👥", s.users, "Jami o'yinchi"], ["🆕", s.new_today, "Bugun yangi"],
+        ["🔥", s.active_today, "Bugun faol"], ["📅", s.active_7d, "7 kunda faol"],
+        ["🔁", s.retention_d1 === null ? "—" : Math.round(s.retention_d1 * 100) + "%", "Ertasi kuni qaytgan"],
+        ["📈", s.trades_today, "Bugun savdo"], ["🪙", s.tokens, "Tokenlar"], ["⭐", s.stars_total, "Stars jami"],
+        ["📢", s.promo_chats, "Reklama chatlari"], ["🚫", s.blocked_bot, "Botni bloklagan"],
+      ];
+      document.getElementById("admin-stat-grid").innerHTML = boxes.map(([e,n,l])=>`<div class="stat-box"><div class="n">${e} ${n}</div><div class="l">${l}</div></div>`).join("");
+      const max = Math.max(1, ...s.daily.map(d=>d.new_users));
+      document.getElementById("admin-bars").innerHTML = s.daily.map(d=>
+        `<div title="${d.day}: ${d.new_users}"><b style="height:${Math.round(d.new_users / max * 100)}%"></b><span>${d.day.slice(0,2)}</span></div>`).join("");
+      document.getElementById("admin-referrers").innerHTML = s.topReferrers.length
+        ? "🏅 Eng ko'p taklif qilganlar: " + s.topReferrers.map(r=>`@${esc(r.username || "—")} (${r.invited})`).join(", ")
+        : "";
+    }catch(e){ /* jim */ }
+  }
+
+  Object.assign(RU, {
+    "Tokenlarni sotib ol":"Покупай токены","Qimmatlaganda sot":"Продавай дороже","Bonuslarni yig'":"Собирай бонусы","O'z tokeningni yarat":"Создай свой токен",
+    "Keyingi":"Далее","Boshladik! 🚀":"Начнём! 🚀","O'tkazib yuborish":"Пропустить","🚀 Tez orada (IPO)":"🚀 Скоро (IPO)","Eslat":"Напомнить",
+    "✅ Eslatiladi":"✅ Напомним","🟢 Ochildi!":"🟢 Открыто!","Savdo ochilganda bot xabar beradi 🔔":"Бот сообщит, когда торги откроются 🔔",
+    "🚀 IPO bilan chiqarish":"🚀 Выпустить через IPO","Token yaratish narxi":"Цена создания токена",
+    "🏆 Hafta":"🏆 Неделя","👑 Mavsum":"👑 Сезон","🏟 Guruhlar":"🏟 Группы","🛡️ Klanlar":"🛡️ Кланы","kun":"дн.","soat":"ч.",
+    "Mukofotlar":"Награды","Shu oy top-10":"Топ-10 месяца","O'tgan mavsum qahramonlari":"Чемпионы прошлого сезона","🏟 Guruhlar ligasi":"🏟 Лига групп",
+    "Hali guruhlar yo'q":"Групп пока нет","Botni guruhingizga qo'shing va /qoshil yozing":"Добавьте бота в группу и напишите /qoshil",
+    "Klanlar reytingi (shu hafta)":"Рейтинг кланов (неделя)","Shu hafta":"На этой неделе","Do'stlaringizni chaqiring":"Зовите друзей",
+    "belgisi bilan qo'shiladi":"— вступают по этому тегу","Klandan chiqish":"Выйти из клана","Klandan chiqasizmi?":"Выйти из клана?","Klandan chiqdingiz":"Вы вышли из клана",
+    "Klanga qo'shilish":"Вступить в клан","Do'stlaringiz bilan jamoa bo'ling - klanlar haftalik foyda bo'yicha bellashadi.":"Объединяйтесь с друзьями — кланы соревнуются по недельной прибыли.",
+    "Klan belgisi, masalan TOSH":"Тег клана, например TOSH","Yangi klan ochish":"Создать клан","Klan nomi":"Название клана","Belgi (2-6 harf)":"Тег (2-6 букв)",
+    "Klan ochish":"Создать клан","🛡️ Klan ochildi!":"🛡️ Клан создан!","Nom va belgini kiriting":"Введите название и тег","Hali klanlar yo'q - birinchi bo'ling!":"Кланов пока нет — будьте первым!",
+    "Mavsum qahramoni":"Герой сезона","Oylik mavsumda top-3":"Топ-3 месячного сезона","Jamoa":"Команда","Klanga a'zo bo'lish":"Вступить в клан",
+  });
+  // v6 matnlari qo'shilgach sahifani qayta tarjima qilamiz
+  if(LANG === "ru") translateNode(document.body);
+
+
+  loadCreateInfo();
 
   (async function start(){
     try{

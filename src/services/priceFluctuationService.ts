@@ -51,7 +51,7 @@ async function tickAllTokens() {
         `WITH upd AS (
            UPDATE tokens
            SET current_price = GREATEST(current_price * (1 + (random() * 2 - 1) * $1::numeric), $2::numeric)
-           WHERE is_hidden = false
+           WHERE is_hidden = false AND (listed_at IS NULL OR listed_at <= NOW())
            RETURNING id, current_price
          )
          INSERT INTO price_ticks (token_id, price)
@@ -62,7 +62,7 @@ async function tickAllTokens() {
       await pool.query(
         `UPDATE tokens
          SET current_price = GREATEST(current_price * (1 + (random() * 2 - 1) * $1::numeric), $2::numeric)
-         WHERE is_hidden = false`,
+         WHERE is_hidden = false AND (listed_at IS NULL OR listed_at <= NOW())`,
         [MAX_TICK_CHANGE, ABSOLUTE_MIN_PRICE]
       );
     }

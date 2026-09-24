@@ -1,10 +1,14 @@
-import { Bot, InlineKeyboard } from "grammy";
+import { Bot, InlineKeyboard, InputFile } from "grammy";
 import dotenv from "dotenv";
 import { getOrCreateUser, getPlatformStats, getUserLeaderboard } from "../services/userService";
 import { claimStreakBonus, getLeague, REFERRAL_REWARD } from "../services/engagementService";
 import { setBanned, isBannedTelegram, hideToken, deleteComment, getBroadcastTargets, markBotBlocked } from "../services/moderationService";
 import { applyStarsPayment, parsePayload, validateStarsPurchase } from "../services/featuresService";
 import { pool } from "../db/pool";
+import { setUserGroup, getGroupLeague, createGiveaway, setGiveawayMessage, claimGiveaway } from "../services/groupService";
+import { listTokensWithStats } from "../services/marketService";
+import { createBackup, restoreBackup, markBackupDone } from "../services/backupService";
+import { getAdminStats } from "../services/retentionService";
 import {
   registerChat, deactivateChat, setChatActive, setChatInterval, listPromoChats, sendPromoToChat,
   setSetting, getPromoText, DEFAULT_PROMO_TEXT, MIN_INTERVAL_MINUTES, parseIntervalMinutes, formatInterval, PromoSender,
@@ -39,6 +43,9 @@ export async function setupBotMenu() {
     { command: "kunlik", description: "🔥 Kunlik bonus (seriya)" },
     { command: "hamyon", description: "👛 Balans va hamyon kodi" },
     { command: "liga", description: "🏆 Haftalik liga" },
+    { command: "top", description: "🔥 Trenddagi tokenlar" },
+    { command: "narx", description: "💵 Token narxi: /narx UZB" },
+    { command: "guruhlar", description: "🏟 Guruhlar ligasi" },
     { command: "reyting", description: "💎 Eng boy foydalanuvchilar" },
     { command: "referral", description: "👥 Do'stlarni taklif qilish" },
   ]);
@@ -62,6 +69,11 @@ bot.command("start", async (ctx) => {
   }
 
   const user = await getOrCreateUser(telegramId, username, referrerTelegramId);
+  // Guruh reklamasi orqali kelgan bo'lsa - shu guruh jamoasiga qo'shamiz (guruhlar ligasi)
+  if (typeof payload === "string" && payload.startsWith("grp_")) {
+    const gid = Number(payload.slice(4));
+    if (gid) await setUserGroup(telegramId, gid).catch(() => null);
+  }
   const isRu = (ctx.from?.language_code ?? "").startsWith("ru");
   await pool.query(
     "UPDATE users SET bot_blocked = false, language = COALESCE(language, $2) WHERE id = $1",
@@ -530,6 +542,174 @@ bot.command("reklama_hozir", async (ctx) => {
     }
     await bot.api.sendMessage(adminChat, `✅ Reklama ${ok}/${chats.length} ta chatga yuborildi`).catch(() => {});
   })();
+});
+
+// ====================== GURUH BUYRUQLARI ======================
+function fmtPct(n: number) {
+  return `${n >= 0 ? "▲ +" : "▼ "}${n.toFixed(1)}%`;
+}
+
+bot.command("narx", async (ctx) => {
+  const q = arg(ctx).replace(/^\$/, "");
+  if (!q) return void (await ctx.reply("Format: /narx BELGI (masalan /narx UZB)"));
+  const list = await listTokensWithStats({ search: q, sort: "volume", limit: 3 });
+  const t: any = list.find((x: any) => x.symbol.toUpperCase() === q.toUpperCase()) ?? list[0];
+  if (!t) return void (await ctx.reply(`🔍 "${q}" topilmadi`));
+  await ctx.reply(
+    `🪙 ${t.name} ($${t.symbol})${t.is_pro ? " ✅" : ""}\n\n` +
+      `💵 Narx: ${Number(t.current_price).toFixed(4)}\n` +
+      `📊 24 soat: ${fmtPct(Number(t.change_24h))}\n` +
+      `💰 24s hajm: ${Number(t.volume_24h).toFixed(2)} Nex\n` +
+      `📦 Muomalada: ${Number(t.circulating_supply)} / ${Number(t.max_supply)}`,
+    { reply_markup: { inline_keyboard: [[{ text: "🚀 Savdo qilish", url: `https://t.me/${BOT_USERNAME}?start=promo` }]] } }
+  );
+});
+
+bot.command("top", async (ctx) => {
+  const list = await listTokensWithStats({ featured: false, sort: "trend", limit: 7 });
+  if (!list.length) return void (await ctx.reply("Hali tokenlar yo'q"));
+  const lines = list.map((t: any, i: number) => `${i + 1}. $${t.symbol} — ${Number(t.current_price).toFixed(4)}  ${fmtPct(Number(t.change_24h))}`);
+  await ctx.reply(`🔥 Trenddagi tokenlar (24 soat)\n\n${lines.join("\n")}`, {
+    reply_markup: { inline_keyboard: [[{ text: "🚀 NexTrade'ni ochish", url: `https://t.me/${BOT_USERNAME}?start=promo` }]] },
+  });
+});
+
+// Guruhda: o'yinchi shu guruh jamoasiga qo'shiladi
+bot.command("qoshil", async (ctx) => {
+  const chat: any = ctx.chat;
+  if (!chat || chat.type === "private") return void (await ctx.reply("Bu buyruq guruh ichida yoziladi: guruh jamoasiga qo'shilasiz"));
+  const title = await setUserGroup(ctx.from!.id, chat.id);
+  if (title === null) {
+    return void (await ctx.reply(`Avval botga kiring: @${BOT_USERNAME} → /start, keyin shu yerda /qoshil yozing`));
+  }
+  await ctx.reply(`✅ Siz "${title}" jamoasidasiz! Foydangiz guruhlar ligasida shu guruhga qo'shiladi 🏆\nReyting: /guruhlar`);
+});
+
+bot.command("guruhlar", async (ctx) => {
+  const list = await getGroupLeague(10);
+  const medals = ["🥇", "🥈", "🥉"];
+  const lines = list.map((g) => `${medals[g.rank - 1] ?? g.rank + "."} ${g.title ?? "Guruh"} — +${g.pnl.toFixed(2)} Nex (${g.members} o'yinchi)`);
+  await ctx.reply(
+    `🏟 Guruhlar ligasi (shu hafta)\n\n${lines.join("\n") || "Hali guruhlar yo'q"}\n\nGuruhingizni qo'shish: guruhda /qoshil yozing`
+  );
+});
+
+// ====================== GIVEAWAY ======================
+// /giveaway 50 100            - shu chatga (guruh/kanal) post
+// /giveaway 50 100 @kanal     - shaxsiy chatdan kanalga post
+bot.command("giveaway", async (ctx) => {
+  if (!adminOnly(ctx)) return;
+  const [a, n, target] = arg(ctx).split(/\s+/);
+  const amount = Number(a), count = Number(n);
+  if (!amount || !count) {
+    return void (await ctx.reply("Format: /giveaway 50 100 — birinchi 100 kishiga 50 Nex\nKanalga: /giveaway 50 100 @kanal_nomi"));
+  }
+  try {
+    const chatId: any = target ? target : ctx.chat!.id;
+    const gw = await createGiveaway(typeof chatId === "number" ? chatId : 0, amount, count);
+    const msg: any = await bot.api.sendMessage(
+      chatId,
+      `🎁 GIVEAWAY!\n\nBirinchi ${count} kishiga +${amount} Nex Trade tekin!\n👇 Tugmani bosing (avval @${BOT_USERNAME} ga /start bosgan bo'lishingiz kerak)`,
+      { reply_markup: { inline_keyboard: [[{ text: `🎁 Olish (0/${count})`, callback_data: `gw:${gw.id}` }]] } }
+    );
+    await pool.query("UPDATE giveaways SET chat_id = $2 WHERE id = $1", [gw.id, msg.chat?.id ?? 0]);
+    await setGiveawayMessage(gw.id, msg.message_id);
+    if (target) await ctx.reply(`✅ Giveaway ${target} ga joylandi`);
+  } catch (err: any) {
+    await ctx.reply(`⚠️ ${err?.description ?? err?.message}`);
+  }
+});
+
+bot.on("callback_query:data", async (ctx) => {
+  const data = (ctx as any).callbackQuery.data as string;
+  if (!data.startsWith("gw:")) return void (await (ctx as any).answerCallbackQuery());
+  try {
+    const r = await claimGiveaway(Number(data.slice(3)), ctx.from!.id);
+    await (ctx as any).answerCallbackQuery({ text: `🎉 +${r.reward} Nex balansingizga qo'shildi!`, show_alert: true });
+    // Tugmadagi hisoblagichni har 5 ta olishda (yoki tugaganda) yangilaymiz - Telegram cheklovlari uchun
+    if (r.messageId && (r.finished || r.claims % 5 === 0 || r.claims <= 3)) {
+      await bot.api.editMessageReplyMarkup(r.chatId, r.messageId, {
+        reply_markup: r.finished
+          ? { inline_keyboard: [[{ text: `✅ Tugadi (${r.claims}/${r.max})`, url: `https://t.me/${BOT_USERNAME}?start=promo` }]] }
+          : { inline_keyboard: [[{ text: `🎁 Olish (${r.claims}/${r.max})`, callback_data: data }]] },
+      }).catch(() => {});
+    }
+  } catch (err: any) {
+    const msg = err?.message === "NEED_START" ? `Avval @${BOT_USERNAME} ga kirib /start bosing, keyin qayta urinib ko'ring` : err?.message;
+    await (ctx as any).answerCallbackQuery({ text: msg ?? "Xatolik", show_alert: true }).catch(() => {});
+  }
+});
+
+// ====================== INLINE REJIM ======================
+// Istalgan chatda: @NexTradexbot UZB  -> token kartasi
+bot.on("inline_query", async (ctx) => {
+  const q = String((ctx as any).inlineQuery.query ?? "").trim().replace(/^\$/, "").slice(0, 32);
+  const list = q
+    ? await listTokensWithStats({ search: q, sort: "volume", limit: 10 })
+    : await listTokensWithStats({ featured: false, sort: "trend", limit: 10 });
+  const results = list.map((t: any) => ({
+    type: "article",
+    id: `t${t.id}`,
+    title: `$${t.symbol} · ${Number(t.current_price).toFixed(4)}  ${fmtPct(Number(t.change_24h))}`,
+    description: `${t.name} — 24s hajm: ${Number(t.volume_24h).toFixed(2)} Nex`,
+    input_message_content: {
+      message_text:
+        `🪙 ${t.name} ($${t.symbol})\n` +
+        `💵 Narx: ${Number(t.current_price).toFixed(4)}  ${fmtPct(Number(t.change_24h))}\n\n` +
+        `🎮 NexTrade — Telegram'dagi token birjasi o'yini. Tekin 100 Nex bilan boshlang!`,
+    },
+    reply_markup: { inline_keyboard: [[{ text: `🚀 $${t.symbol} ni sotib olish`, url: `https://t.me/${BOT_USERNAME}?start=promo` }]] },
+  }));
+  await (ctx as any).answerInlineQuery(results, { cache_time: 30 });
+});
+
+// ====================== ZAXIRA NUSXA ======================
+export async function sendBackupToAdmin(reason = "Kunlik zaxira") {
+  if (!ADMIN_TELEGRAM_ID) return false;
+  const b = await createBackup();
+  const users = b.counts.users ?? 0, trades = b.counts.transactions ?? 0;
+  await bot.api.sendDocument(ADMIN_TELEGRAM_ID, new InputFile(b.buffer, b.filename), {
+    caption: `💾 ${reason}\n👥 ${users} foydalanuvchi · 🔁 ${trades} savdo\n\nTiklash: yangi bo'sh bazada shu faylga reply qilib /tiklash yozing`,
+  });
+  await markBackupDone();
+  return true;
+}
+
+bot.command("zaxira", async (ctx) => {
+  if (!adminOnly(ctx)) return;
+  await ctx.reply("💾 Zaxira tayyorlanmoqda...");
+  try {
+    await sendBackupToAdmin("Qo'lda olingan zaxira");
+  } catch (err: any) {
+    await ctx.reply(`⚠️ ${err?.description ?? err?.message}`);
+  }
+});
+
+bot.command("tiklash", async (ctx) => {
+  if (!adminOnly(ctx)) return;
+  const doc: any = ctx.message?.reply_to_message?.document;
+  if (!doc) return void (await ctx.reply("Zaxira fayliga (.json.gz) reply qilib /tiklash yozing"));
+  try {
+    const file: any = await bot.api.getFile(doc.file_id);
+    const res = await fetch(`https://api.telegram.org/file/bot${BOT_TOKEN}/${file.file_path}`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    const counts = await restoreBackup(buf);
+    await ctx.reply(`✅ Tiklandi!\n👥 ${counts.users ?? 0} foydalanuvchi, 🪙 ${counts.tokens ?? 0} token, 🔁 ${counts.transactions ?? 0} savdo`);
+  } catch (err: any) {
+    await ctx.reply(`⚠️ ${err?.message}`);
+  }
+});
+
+bot.command("statistika", async (ctx) => {
+  if (!adminOnly(ctx)) return;
+  const s: any = await getAdminStats();
+  await ctx.reply(
+    `📊 NexTrade statistikasi\n\n` +
+      `👥 Jami o'yinchi: ${s.users}\n🆕 Bugun yangi: ${s.new_today}\n🔥 Bugun faol: ${s.active_today}\n📅 7 kunda faol: ${s.active_7d}\n` +
+      `🔁 Kechagilarning bugun qaytgani: ${s.retention_d1 === null ? "—" : Math.round(s.retention_d1 * 100) + "%"} (${s.retention_cohort} kishidan)\n\n` +
+      `🪙 Tokenlar: ${s.tokens}\n📈 Bugun savdo: ${s.trades_today} ta (${s.volume_today.toFixed(2)} Nex)\n` +
+      `📢 Reklama chatlari: ${s.promo_chats}\n⭐ Jami Stars: ${s.stars_total}\n🚫 Botni bloklagan: ${s.blocked_bot}`
+  );
 });
 
 // ====================== TELEGRAM STARS TO'LOVLARI ======================

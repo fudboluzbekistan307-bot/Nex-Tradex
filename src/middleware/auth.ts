@@ -93,6 +93,16 @@ export function verifyInitData(initData: string, botToken = BOT_TOKEN): Verified
   return { user, startParam: params.get("start_param") ?? undefined, authDate };
 }
 
+const lastTouched = new Map<number, number>();
+function touchLastSeen(userId: number) {
+  const now = Date.now();
+  if ((lastTouched.get(userId) ?? 0) > now - 5 * 60_000) return;
+  lastTouched.set(userId, now);
+  import("../db/pool")
+    .then(({ pool }) => pool.query("UPDATE users SET last_seen_at = NOW() WHERE id = $1", [userId]))
+    .catch(() => {});
+}
+
 function parseReferrer(startParam?: string): number | undefined {
   if (!startParam || !startParam.startsWith("ref_")) return undefined;
   const n = Number(startParam.slice(4));
@@ -118,6 +128,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       if ((req.user as any).is_banned) {
         return res.status(403).json({ error: "Hisobingiz qoidabuzarlik uchun bloklangan" });
       }
+      // Oxirgi faollik (eslatmalar va statistika uchun) - 5 daqiqada bir marta yoziladi
+      touchLastSeen(req.user.id);
       return next();
     }
 

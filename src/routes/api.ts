@@ -30,6 +30,10 @@ import { getBonusInfo, claimBonus } from "../services/bonusService";
 import { getTopupWithdrawInfo, topupNexTradex, withdrawNexTradex } from "../services/nexTopupService";
 import { floor4 } from "../services/pricingService";
 import { requireAuth, requireSelf, requireAdmin } from "../middleware/auth";
+import { writeLimiter } from "../middleware/rateLimit";
+import { getSeason, getAdminStats } from "../services/retentionService";
+import { getGroupLeague, getClanLeague, getMyClan, createClan, joinClan, leaveClan, CLAN_CREATE_FEE, CLAN_MAX_MEMBERS } from "../services/groupService";
+import { TOKEN_CREATE_FEE, IPO_DELAY_MINUTES, listUpcomingTokens } from "../services/tokenService";
 import { bot } from "../bot/bot";
 import { sendTelegramMessage } from "../bot/bot";
 import { listTokensWithStats, getTokenStats, getTokenChartRange, getNexTradeChartRange, MarketSort } from "../services/marketService";
@@ -102,6 +106,26 @@ apiRouter.get("/tokens", ah(async (req, res) => {
   res.json(tokens);
 }));
 
+apiRouter.get("/tokens/upcoming", ah(async (_req, res) => {
+  res.json(await listUpcomingTokens());
+}));
+
+apiRouter.get("/season", ah(async (_req, res) => {
+  res.json(await getSeason());
+}));
+
+apiRouter.get("/groups/league", ah(async (_req, res) => {
+  res.json(await getGroupLeague(10));
+}));
+
+apiRouter.get("/clans/top", ah(async (_req, res) => {
+  res.json({ clans: await getClanLeague(10), fee: CLAN_CREATE_FEE, maxMembers: CLAN_MAX_MEMBERS });
+}));
+
+apiRouter.get("/token-create-info", (_req, res) => {
+  res.json({ fee: TOKEN_CREATE_FEE, ipoDelayMinutes: IPO_DELAY_MINUTES });
+});
+
 apiRouter.get("/tokens/featured", ah(async (_req, res) => {
   res.json(await listTokensWithStats({ featured: true, sort: "price" }));
 }));
@@ -171,6 +195,8 @@ apiRouter.get("/nextrade/topup-info", ah(async (_req, res) => {
 // Shu nuqtadan pastdagi HAMMA route'lar Telegram autentifikatsiyasini talab qiladi
 // ================================================================
 apiRouter.use(requireAuth);
+// Pul o'zgartiradigan so'rovlar uchun foydalanuvchi bo'yicha cheklov
+apiRouter.use(writeLimiter);
 
 // Foydalanuvchini ro'yxatdan o'tkazish / olish. Referal endi imzolangan
 // initData'dagi start_param'dan olinadi (requireAuth ichida).
@@ -300,6 +326,7 @@ apiRouter.post("/tokens", ahUser(async (req, res) => {
     name: z.string().trim().min(1).max(64).refine((s) => !/[<>]/.test(s), "Nomda < > belgilari bo'lmasin"),
     symbol: z.string().trim().regex(/^[A-Za-z0-9]{2,10}$/, "Belgi 2-10 ta lotin harf/raqam bo'lishi kerak"),
     max_supply: z.number().int().min(10).max(10000),
+    ipo: z.boolean().optional(),
     image_url: z
       .string()
       .trim()
@@ -321,8 +348,11 @@ apiRouter.post("/tokens", ahUser(async (req, res) => {
     parsed.data.name,
     parsed.data.symbol,
     parsed.data.max_supply,
-    parsed.data.image_url
+    parsed.data.image_url,
+    parsed.data.ipo ?? false
   );
+  // IPO bo'lsa - yaratuvchi avtomatik "ochilish"dan xabardor bo'ladi
+  if (parsed.data.ipo) await subscribeAlert(uid(req), token.id, 5).catch(() => {});
   res.json(token);
   // Kanalga e'lon (ANNOUNCE_CHAT_ID sozlangan bo'lsa) - javobni kutdirmaymiz
   announceNewToken(token, req.user!.username).catch(() => {});
@@ -421,6 +451,28 @@ apiRouter.post("/tokens/:id/stars-invoice", ahUser(async (req, res) => {
   res.json({ link, stars: amount });
 }));
 
+// ---------- Klanlar ----------
+apiRouter.get("/user/:userId/clan", ah(async (req, res) => {
+  res.json(await getMyClan(uid(req)));
+}));
+
+apiRouter.post("/clans", ahUser(async (req, res) => {
+  const parsed = z.object({ name: z.string().min(1).max(40), tag: z.string().min(1).max(8) }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Nom va belgini kiriting" });
+  res.json(await createClan(uid(req), parsed.data.name, parsed.data.tag));
+}));
+
+apiRouter.post("/clans/join", ahUser(async (req, res) => {
+  const parsed = z.object({ tag: z.string().min(1).max(10) }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Klan belgisini kiriting" });
+  res.json(await joinClan(uid(req), parsed.data.tag));
+}));
+
+apiRouter.post("/clans/leave", ahUser(async (req, res) => {
+  await leaveClan(uid(req));
+  res.json({ ok: true });
+}));
+
 // ---------- Haftalik liga ----------
 apiRouter.get("/league", ah(async (req, res) => {
   res.json(await getLeague(uid(req)));
@@ -444,6 +496,10 @@ apiRouter.post("/nextrade/withdraw", ahUser(async (req, res) => {
 // imzolangan initData'dan olinadi
 // ================================================================
 apiRouter.use("/admin", requireAdmin);
+
+apiRouter.get("/admin/stats", ah(async (_req, res) => {
+  res.json(await getAdminStats());
+}));
 
 apiRouter.delete("/admin/comments/:commentId", ahUser(async (req, res) => {
   await deleteComment(Number(req.params.commentId));
