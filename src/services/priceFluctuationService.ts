@@ -4,6 +4,8 @@ import { tickNexTradePrice } from "./nexTradePriceService";
 import { checkPriceAlerts } from "./alertService";
 import { checkPumpAnnouncements } from "./announceService";
 import { payoutPreviousWeek } from "./engagementService";
+import { processLimitOrders } from "./featuresService";
+import { buyToken, sellToken } from "./tradeService";
 
 /**
  * Har TICK_INTERVAL_MS da barcha tokenlar narxiga kichik, tasodifiy tebranish
@@ -49,6 +51,7 @@ async function tickAllTokens() {
         `WITH upd AS (
            UPDATE tokens
            SET current_price = GREATEST(current_price * (1 + (random() * 2 - 1) * $1::numeric), $2::numeric)
+           WHERE is_hidden = false
            RETURNING id, current_price
          )
          INSERT INTO price_ticks (token_id, price)
@@ -58,7 +61,8 @@ async function tickAllTokens() {
     } else {
       await pool.query(
         `UPDATE tokens
-         SET current_price = GREATEST(current_price * (1 + (random() * 2 - 1) * $1::numeric), $2::numeric)`,
+         SET current_price = GREATEST(current_price * (1 + (random() * 2 - 1) * $1::numeric), $2::numeric)
+         WHERE is_hidden = false`,
         [MAX_TICK_CHANGE, ABSOLUTE_MIN_PRICE]
       );
     }
@@ -76,6 +80,13 @@ async function tickAllTokens() {
     await checkPriceAlerts();
   } catch (err) {
     console.error("❌ Narx bildirishnomalarida xatolik:", err);
+  }
+
+  try {
+    const { sendTelegramMessage } = await import("../bot/bot");
+    await processLimitOrders({ buy: buyToken, sell: sellToken }, sendTelegramMessage);
+  } catch (err) {
+    console.error("❌ Limit buyurtmalarda xatolik:", err);
   }
 
   try {

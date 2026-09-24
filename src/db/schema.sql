@@ -324,3 +324,62 @@ CREATE TABLE IF NOT EXISTS league_payouts (
 -- Kanalga "+50%" e'lonlari uchun oxirgi e'lon qilingan narx
 ALTER TABLE tokens ADD COLUMN IF NOT EXISTS last_announced_price NUMERIC(20, 8);
 CREATE INDEX IF NOT EXISTS idx_favorites_user_time ON favorites(user_id, created_at);
+
+-- ====== v4: MODERATSIYA, STARS, G'ILDIRAK, IZOHLAR, LIMIT BUYURTMALAR ======
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bot_blocked BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_spin_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS max_streak INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS language VARCHAR(4);
+
+-- Admin tomonidan yashirilgan (bloklangan) tokenlar va Stars orqali reklama
+ALTER TABLE tokens ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE tokens ADD COLUMN IF NOT EXISTS promoted_until TIMESTAMP;
+
+-- Telegram Stars to'lovlari (charge_id UNIQUE - bir to'lov ikki marta qo'llanmaydi)
+CREATE TABLE IF NOT EXISTS stars_payments (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    token_id INTEGER REFERENCES tokens(id),
+    kind VARCHAR(16) NOT NULL,
+    stars INTEGER NOT NULL,
+    charge_id VARCHAR(128) NOT NULL UNIQUE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Omad g'ildiragi tarixi
+CREATE TABLE IF NOT EXISTS wheel_spins (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    reward NUMERIC(20, 4) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_wheel_spins_user ON wheel_spins(user_id);
+
+-- Token izohlari
+CREATE TABLE IF NOT EXISTS token_comments (
+    id SERIAL PRIMARY KEY,
+    token_id INTEGER NOT NULL REFERENCES tokens(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    text VARCHAR(280) NOT NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_token_comments_token_time ON token_comments(token_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_token_comments_user_time ON token_comments(user_id, created_at DESC);
+
+-- Limit buyurtmalar: narx belgilangan darajaga yetganda avtomatik savdo
+CREATE TABLE IF NOT EXISTS limit_orders (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    token_id INTEGER NOT NULL REFERENCES tokens(id),
+    side VARCHAR(4) NOT NULL CHECK (side IN ('buy', 'sell')),
+    amount NUMERIC(20, 4) NOT NULL CHECK (amount > 0),
+    trigger_price NUMERIC(20, 8) NOT NULL CHECK (trigger_price > 0),
+    status VARCHAR(12) NOT NULL DEFAULT 'open',
+    note TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    filled_at TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_limit_orders_open ON limit_orders(token_id, status);
+CREATE INDEX IF NOT EXISTS idx_limit_orders_user ON limit_orders(user_id, status);

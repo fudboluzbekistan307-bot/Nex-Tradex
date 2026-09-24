@@ -115,6 +115,9 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
         verified.user.username,
         parseReferrer(verified.startParam)
       );
+      if ((req.user as any).is_banned) {
+        return res.status(403).json({ error: "Hisobingiz qoidabuzarlik uchun bloklangan" });
+      }
       return next();
     }
 

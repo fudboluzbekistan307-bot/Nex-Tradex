@@ -39,6 +39,7 @@ export async function buyToken(userId: number, tokenId: number, rawAmount: numbe
     );
     if (tokenRes.rows.length === 0) throw new Error("Token topilmadi");
     const token = tokenRes.rows[0];
+    if (token.is_hidden) throw new Error("Bu token admin tomonidan bloklangan");
 
     const newSupplyCheck = Number(token.circulating_supply) + amount;
     if (newSupplyCheck > Number(token.max_supply)) {
@@ -192,6 +193,7 @@ export async function sellToken(userId: number, tokenId: number, rawAmount: numb
     );
     if (tokenRes.rows.length === 0) throw new Error("Token topilmadi");
     const token = tokenRes.rows[0];
+    if (token.is_hidden) throw new Error("Bu token admin tomonidan bloklangan");
 
     const holdingRes = await client.query(
       "SELECT * FROM holdings WHERE user_id = $1 AND token_id = $2 FOR UPDATE",

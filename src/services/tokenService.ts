@@ -93,6 +93,7 @@ export async function listLeaderboard(limit = 5) {
   const result = await pool.query(
     `SELECT *, (current_price * circulating_supply) AS market_value
      FROM tokens
+     WHERE is_hidden = false
      ORDER BY market_value DESC
      LIMIT $1`,
     [limit]

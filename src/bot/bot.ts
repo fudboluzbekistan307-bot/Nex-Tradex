@@ -2,6 +2,9 @@ import { Bot, InlineKeyboard } from "grammy";
 import dotenv from "dotenv";
 import { getOrCreateUser, getPlatformStats, getUserLeaderboard } from "../services/userService";
 import { claimStreakBonus, getLeague, REFERRAL_REWARD } from "../services/engagementService";
+import { setBanned, isBannedTelegram, hideToken, deleteComment, getBroadcastTargets, markBotBlocked } from "../services/moderationService";
+import { applyStarsPayment, parsePayload, validateStarsPurchase } from "../services/featuresService";
+import { pool } from "../db/pool";
 import { listFrozenBalances, getTotalFrozen, withdrawFrozen } from "../services/frozenService";
 
 dotenv.config();
@@ -14,6 +17,13 @@ const ADMIN_TELEGRAM_ID = Number(process.env.ADMIN_TELEGRAM_ID ?? "0");
 // BOT_TOKEN bo'lmasa ham (masalan, lokal test) modul yiqilmasligi uchun
 // soxta token bilan yaratiladi - index.ts bunday holda botni ishga tushirmaydi.
 export const bot = new Bot(BOT_TOKEN || "0:missing-token");
+
+// Bloklangan foydalanuvchilarning xabarlariga bot javob bermaydi
+bot.use(async (ctx, next) => {
+  const id = ctx.from?.id;
+  if (id && id !== ADMIN_TELEGRAM_ID && (await isBannedTelegram(id).catch(() => false))) return;
+  await next();
+});
 
 /**
  * Bot buyruqlari ro'yxati va chap pastdagi "Menu" tugmasini Mini App'ga
@@ -48,12 +58,31 @@ bot.command("start", async (ctx) => {
   }
 
   const user = await getOrCreateUser(telegramId, username, referrerTelegramId);
+  const isRu = (ctx.from?.language_code ?? "").startsWith("ru");
+  await pool.query(
+    "UPDATE users SET bot_blocked = false, language = COALESCE(language, $2) WHERE id = $1",
+    [user.id, isRu ? "ru" : "uz"]
+  ).catch(() => {});
 
   const keyboard = new InlineKeyboard().webApp("🚀 NexTrade'ni ochish", MINI_APP_URL);
 
   const bonusNote = referrerTelegramId
     ? `\n\n🎁 Siz do'stingiz taklifi bilan keldingiz! Birinchi savdoingizni qiling - ikkalangizga +${REFERRAL_REWARD} Nex Trade beriladi.`
     : "";
+
+  if (isRu) {
+    await ctx.reply(
+      `👋 Добро пожаловать в NexTrade!\n\n` +
+        `💰 Ваш баланс: ${Number(user.nex_trade_balance).toFixed(2)} Nex Trade\n\n` +
+        `🪙 Создайте свой токен, покупайте чужие и продавайте с прибылью.\n` +
+        `🔥 Заходите каждый день — ежедневный бонус растёт до 100 Nex\n` +
+        `🏆 Попадите в топ-10 недельной лиги — получите награду\n` +
+        `🕹 Это игра: реальные деньги не нужны.\n\n` +
+        `Откройте приложение кнопкой ниже 👇`,
+      { reply_markup: new InlineKeyboard().webApp("🚀 Открыть NexTrade", MINI_APP_URL) }
+    );
+    return;
+  }
 
   await ctx.reply(
     `👋 NexTrade'ga xush kelibsiz!\n\n` +
@@ -215,6 +244,150 @@ export async function sendTelegramMessage(telegramId: number, text: string): Pro
     console.error("⚠️ Xabar yuborib bo'lmadi:", telegramId, err?.description ?? err?.message ?? err);
   }
 }
+
+// ====================== ADMIN: MODERATSIYA ======================
+function adminOnly(ctx: any): boolean {
+  return ctx.from?.id === ADMIN_TELEGRAM_ID;
+}
+function arg(ctx: any): string {
+  return (typeof ctx.match === "string" ? ctx.match : "").trim();
+}
+
+bot.command("ban", async (ctx) => {
+  if (!adminOnly(ctx)) return;
+  const a = arg(ctx);
+  if (!a) return void (await ctx.reply("Format: /ban @username yoki /ban 123456789 (telegram ID)"));
+  try {
+    const u = await setBanned(a, true);
+    await ctx.reply(`🚫 Bloklandi: ${u.username ? "@" + u.username : u.telegramId}`);
+  } catch (err: any) {
+    await ctx.reply(`⚠️ ${err.message}`);
+  }
+});
+
+bot.command("unban", async (ctx) => {
+  if (!adminOnly(ctx)) return;
+  const a = arg(ctx);
+  if (!a) return void (await ctx.reply("Format: /unban @username yoki /unban 123456789"));
+  try {
+    const u = await setBanned(a, false);
+    await ctx.reply(`✅ Blokdan chiqarildi: ${u.username ? "@" + u.username : u.telegramId}`);
+  } catch (err: any) {
+    await ctx.reply(`⚠️ ${err.message}`);
+  }
+});
+
+bot.command("tokenochir", async (ctx) => {
+  if (!adminOnly(ctx)) return;
+  const a = arg(ctx);
+  if (!a) return void (await ctx.reply("Format: /tokenochir BELGI (masalan /tokenochir UZB) yoki /tokenochir 12 (token ID)"));
+  try {
+    const r = await hideToken(a);
+    await ctx.reply(
+      `🗑 ${r.name} ($${r.symbol}) bozordan olib tashlandi.\n` +
+        `💸 ${r.refunds.length} ta egaga tokenlari joriy narxda Nex Trade qilib qaytarildi.`
+    );
+    for (const x of r.refunds) {
+      await sendTelegramMessage(
+        x.telegramId,
+        `ℹ️ ${r.name} ($${r.symbol}) tokeni qoidabuzarlik sababli bozordan olib tashlandi.\n` +
+          `Sizdagi tokenlar joriy narxda qaytarildi: +${x.refund.toFixed(4)} Nex Trade.`
+      );
+    }
+  } catch (err: any) {
+    await ctx.reply(`⚠️ ${err.message}`);
+  }
+});
+
+bot.command("izohochir", async (ctx) => {
+  if (!adminOnly(ctx)) return;
+  const id = Number(arg(ctx));
+  if (!id) return void (await ctx.reply("Format: /izohochir 15 (izoh ID - ilovada izoh yonida ko'rinadi)"));
+  try {
+    await deleteComment(id);
+    await ctx.reply("🗑 Izoh o'chirildi");
+  } catch (err: any) {
+    await ctx.reply(`⚠️ ${err.message}`);
+  }
+});
+
+/**
+ * OMMAVIY XABAR: /xabar Matn  — hamma foydalanuvchiga matn yuboradi.
+ * Yoki istalgan xabarga (rasm, video, premium emojili post) JAVOB (reply)
+ * qilib /xabar yozing — o'sha xabar aynan nusxalanib yuboriladi.
+ * Telegram cheklovi sababli sekundiga ~20 ta xabar yuboriladi.
+ */
+let broadcasting = false;
+bot.command("xabar", async (ctx) => {
+  if (!adminOnly(ctx)) return;
+  const text = arg(ctx);
+  const replied = ctx.message?.reply_to_message;
+  if (!text && !replied) {
+    return void (await ctx.reply(
+      "📢 Ommaviy xabar:\n• /xabar Matn — hammaga matn yuboradi\n• Istalgan xabarga reply qilib /xabar — o'sha xabarni (rasm, video bilan) nusxalaydi"
+    ));
+  }
+  if (broadcasting) return void (await ctx.reply("⏳ Oldingi xabar hali yuborilmoqda, kuting"));
+
+  const targets = await getBroadcastTargets();
+  await ctx.reply(`📤 ${targets.length} ta foydalanuvchiga yuborish boshlandi...`);
+  broadcasting = true;
+  const adminChat = ctx.chat!.id;
+  const fromChat = ctx.chat!.id;
+  const messageId = replied?.message_id;
+
+  // Webhook javobini kutdirmaslik uchun fonda yuboramiz
+  (async () => {
+    let ok = 0, blocked = 0, failed = 0;
+    for (const t of targets) {
+      try {
+        if (messageId) await bot.api.copyMessage(t.telegramId, fromChat, messageId);
+        else await bot.api.sendMessage(t.telegramId, text);
+        ok++;
+      } catch (err: any) {
+        const code = err?.error_code;
+        if (code === 403) { blocked++; await markBotBlocked(t.id).catch(() => {}); }
+        else if (code === 429) {
+          const wait = (err?.parameters?.retry_after ?? 5) * 1000;
+          await new Promise((r) => setTimeout(r, wait));
+          failed++;
+        } else failed++;
+      }
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    broadcasting = false;
+    await bot.api.sendMessage(adminChat, `✅ Xabar yuborildi: ${ok} ta\n🚫 Botni bloklagan: ${blocked} ta\n⚠️ Xato: ${failed} ta`).catch(() => {});
+  })();
+});
+
+// ====================== TELEGRAM STARS TO'LOVLARI ======================
+bot.on("pre_checkout_query", async (ctx) => {
+  const q = ctx.preCheckoutQuery;
+  const p = parsePayload(q.invoice_payload);
+  try {
+    if (!p) throw new Error("Noto'g'ri to'lov");
+    await validateStarsPurchase(p.kind, p.tokenId, p.userId);
+    await ctx.answerPreCheckoutQuery(true);
+  } catch (err: any) {
+    await ctx.answerPreCheckoutQuery(false, String(err?.message ?? "To'lovni amalga oshirib bo'lmadi"));
+  }
+});
+
+bot.on("message:successful_payment", async (ctx) => {
+  const sp = ctx.message.successful_payment;
+  try {
+    const r = await applyStarsPayment(sp.invoice_payload, sp.telegram_payment_charge_id, sp.total_amount, ctx.from!.id);
+    if (r.already) return;
+    await ctx.reply(
+      r.kind === "pro"
+        ? `✅ Rahmat! ${r.token?.name} ($${r.token?.symbol}) endi PRO tokeni!`
+        : `📣 Rahmat! ${r.token?.name} ($${r.token?.symbol}) 24 soat davomida bozorning eng tepasida turadi!`
+    );
+  } catch (err: any) {
+    console.error("❌ Stars to'lovini qo'llashda xato:", err);
+    await ctx.reply("⚠️ To'lov qabul qilindi, lekin qo'llashda xato bo'ldi. Admin bilan bog'laning.");
+  }
+});
 
 bot.catch((err) => {
   console.error("Bot xatosi:", err);

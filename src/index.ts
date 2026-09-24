@@ -10,6 +10,7 @@ import { apiRouter } from "./routes/api";
 import { bot, setupBotMenu } from "./bot/bot";
 import { startPriceFluctuations, stopPriceFluctuations } from "./services/priceFluctuationService";
 import { ensureSchema } from "./db/ensureSchema";
+import { migrateFromOldDatabase } from "./db/migrateFrom";
 import { pool } from "./db/pool";
 
 const app = express();
@@ -83,6 +84,8 @@ async function startBot() {
 
 async function bootstrap() {
   await ensureSchema();
+  // MIGRATE_FROM_URL berilgan bo'lsa - eski bazadan ma'lumotlarni ko'chiradi (bir marta)
+  await migrateFromOldDatabase();
 
   const server = app.listen(PORT, () => {
     console.log(`✅ Server ${PORT}-portda ishga tushdi`);

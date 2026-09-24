@@ -84,7 +84,7 @@ export async function claimStreakBonus(userId: number) {
 
     const upd = await client.query(
       `UPDATE users SET nex_trade_balance = nex_trade_balance + $1,
-              last_daily_bonus_at = NOW(), daily_streak = $2
+              last_daily_bonus_at = NOW(), daily_streak = $2, max_streak = GREATEST(max_streak, $2)
        WHERE id = $3 RETURNING nex_trade_balance`,
       [bonus, streak, userId]
     );

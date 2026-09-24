@@ -494,6 +494,49 @@
   .share-card .what{ font-size:14px; color:#d9dcea; }
   .share-btn{ background:transparent; border:1px solid var(--border); color:var(--text); border-radius:10px; padding:8px 12px; font-weight:700; font-size:12.5px; }
 
+/* ====== v4: izohlar, limit, Stars, g'ildirak, daraja, til ====== */
+  .promo-tag{ display:inline-block; font-size:10.5px; font-weight:700; color:#1a1200; background:var(--gold); border-radius:6px; padding:1px 5px; margin-left:4px; vertical-align:middle; }
+  .comment{ padding:10px 0; border-top:1px solid var(--border); }
+  .comment:first-child{ border-top:none; }
+  .comment-head{ display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
+  .comment-head b{ color:var(--text); font-size:12.5px; }
+  .comment-text{ font-size:13.5px; margin-top:4px; line-height:1.45; word-break:break-word; }
+  .creator-tag{ font-size:10px; font-weight:700; color:var(--gold); border:1px solid var(--gold); border-radius:5px; padding:0 4px; margin-left:4px; }
+  .comment-del{ background:none; border:none; color:var(--down); font-size:13px; padding:2px 4px; }
+  .comment-form{ display:flex; gap:8px; margin-top:10px; }
+  .comment-form input{ flex:1; background:var(--bg-elevated); border:1px solid var(--border); border-radius:10px; padding:11px 12px; color:var(--text); font-size:14px; font-family:'Inter',sans-serif; min-width:0; }
+  .comment-form input:focus{ outline:none; border-color:var(--gold); }
+  .comment-form button{ background:var(--gold); color:#1a1200; border:none; border-radius:10px; padding:0 14px; font-weight:700; font-size:16px; }
+  .order-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:9px 0; border-top:1px solid var(--border); font-size:12.5px; }
+  .order-row .st{ font-size:11px; font-weight:700; }
+  .order-cancel{ background:none; border:1px solid var(--border); color:var(--muted); border-radius:8px; padding:4px 8px; font-size:11.5px; font-weight:700; }
+  .limit-toggle{ display:flex; gap:8px; margin-bottom:12px; }
+  .limit-toggle button{ flex:1; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--muted); font-weight:700; font-size:13px; }
+  .limit-toggle button.active[data-lside="buy"]{ background:rgba(0,214,143,.15); color:var(--up); border-color:var(--up); }
+  .limit-toggle button.active[data-lside="sell"]{ background:rgba(255,92,114,.15); color:var(--down); border-color:var(--down); }
+  .row2{ display:flex; gap:8px; }
+  .row2 .field{ flex:1; margin-bottom:10px; }
+  .stars-btn{ width:100%; padding:13px; border:1px solid #FFC857; border-radius:12px; background:rgba(255,200,87,.1); color:var(--gold); font-weight:700; font-size:14.5px; margin-top:8px; }
+  .level-card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; margin-top:12px; width:100%; text-align:left; }
+  .level-top{ display:flex; justify-content:space-between; align-items:baseline; }
+  .level-num{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:20px; color:var(--violet); }
+  .level-bar{ height:6px; background:var(--border); border-radius:3px; margin-top:8px; overflow:hidden; }
+  .level-bar i{ display:block; height:100%; background:linear-gradient(90deg, var(--violet), var(--gold)); }
+  .badge-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-top:12px; }
+  .badge{ background:var(--bg-elevated); border:1px solid var(--border); border-radius:10px; padding:7px 2px; text-align:center; font-size:20px; filter:grayscale(1); opacity:.35; }
+  .badge span{ display:block; font-size:9.5px; color:var(--muted); margin-top:2px; line-height:1.15; }
+  .badge.earned{ filter:none; opacity:1; border-color:var(--gold); }
+  .badge.earned span{ color:var(--text); }
+  .wheel-wrap{ position:relative; width:270px; height:270px; margin:10px auto 18px; }
+  .wheel-pointer{ position:absolute; top:-6px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:14px solid transparent; border-right:14px solid transparent; border-top:24px solid var(--gold); z-index:3; filter:drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
+  .wheel{ width:100%; height:100%; border-radius:50%; border:6px solid var(--gold); position:relative; transition:transform 4.2s cubic-bezier(.17,.67,.12,.99); box-shadow:0 0 30px rgba(255,200,87,.25); }
+  .wheel-label{ position:absolute; left:50%; top:50%; width:0; height:0; }
+  .wheel-label span{ position:absolute; left:-24px; top:-122px; width:48px; text-align:center; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:15px; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.6); }
+  .wheel-center{ position:absolute; left:50%; top:50%; width:54px; height:54px; margin:-27px 0 0 -27px; border-radius:50%; background:var(--bg-elevated); border:4px solid var(--gold); display:flex; align-items:center; justify-content:center; font-size:22px; z-index:2; }
+  .lang-row{ display:flex; gap:8px; margin-top:8px; }
+  .lang-btn{ flex:1; background:var(--bg-elevated); border:1px solid var(--border); color:var(--muted); border-radius:10px; padding:9px; font-weight:700; font-size:13px; }
+  .lang-btn.active{ border-color:var(--gold); color:var(--gold); }
+
 </style>
 </head>
 <body>
@@ -618,6 +661,18 @@
         </div>
         <div class="streak-dots" id="streak-dots"></div>
       </div>
+      <div class="level-card" id="level-card">
+        <div class="level-top">
+          <div><span class="level-num" id="level-num">Lv 1</span> <span class="hint" id="level-xp" style="margin:0;">0 XP</span></div>
+          <div class="hint" id="level-next" style="margin:0;">—</div>
+        </div>
+        <div class="level-bar"><i id="level-bar" style="width:0%"></i></div>
+        <div class="badge-grid" id="badge-grid"></div>
+      </div>
+      <div class="referral-box" id="wheel-open-btn" style="cursor:pointer;background:linear-gradient(135deg, rgba(139,124,255,.16), rgba(255,200,87,.08));border-color:var(--violet);">
+        <div style="font-weight:700;font-size:13.5px;">🎡 Omad g'ildiragi</div>
+        <div class="hint" id="wheel-hint">Kuniga 1 marta tekin aylantiring - 500 Nex gacha yutuq!</div>
+      </div>
       <div class="missions-box">
         <div style="font-weight:700;font-size:14px;padding:10px 0 4px;">🎯 Vazifalar</div>
         <div id="missions-list"><div class="hint" style="padding:10px 0;">Yuklanmoqda...</div></div>
@@ -645,8 +700,15 @@
         <div style="font-weight:600;font-size:13.5px;">💎 PRO token 🔒</div>
         <div class="hint">Real pulga bog'liq token yaratish. Litsenziya jarayoni tugagach ochiladi.</div>
       </div>
-    </div>
-    <div class="section-title">Mening tokenlarim</div>
+      <div class="referral-box">
+        <div style="font-weight:700;font-size:13.5px;">🌐 Til / Язык</div>
+        <div class="lang-row">
+          <button class="lang-btn" data-lang="uz">🇺🇿 O'zbekcha</button>
+          <button class="lang-btn" data-lang="ru">🇷🇺 Русский</button>
+        </div>
+      </div>
+      </div>
+      <div class="section-title">Mening tokenlarim</div>
     <div id="my-tokens-list"></div>
   </section>
 
@@ -822,6 +884,26 @@
   </div>
 </div>
 
+<div class="detail-overlay" id="wheel-overlay">
+  <div class="detail-header">
+    <button class="back-btn" id="wheel-back">←</button>
+    <div>
+      <div style="font-weight:700;font-size:15px;">🎡 Omad g'ildiragi</div>
+      <div class="detail-meta">Kuniga 1 marta tekin</div>
+    </div>
+  </div>
+  <div class="detail-body" style="text-align:center;">
+    <div class="wheel-wrap">
+      <div class="wheel-pointer"></div>
+      <div class="wheel" id="wheel"></div>
+      <div class="wheel-center">🎁</div>
+    </div>
+    <div id="wheel-result" style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;min-height:30px;color:var(--gold);"></div>
+    <button class="primary" id="wheel-spin-btn" style="margin-top:10px;">Aylantirish!</button>
+    <div class="hint" id="wheel-status" style="margin-top:10px;"></div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="share-modal">
   <div class="modal">
     <div class="share-card">
@@ -914,7 +996,35 @@
       <div style="font-weight:700;margin-bottom:4px;">✅ PRO nishon</div>
       <div class="hint" id="detail-pro-hint" style="margin:0 0 10px;">Tokeningizni "PRO" (tasdiqlangan) deb belgilang - bozorda va reytingda alohida ajralib turadi.</div>
       <button class="primary" id="pro-upgrade-btn">PRO holatiga o'tkazish</button>
-    </div>
+        <button class="stars-btn" id="pro-stars-btn">⭐ Telegram Stars bilan</button>
+      </div>
+      <div class="card" id="detail-promo-card" style="display:none;margin-top:14px;">
+        <div style="font-weight:700;margin-bottom:4px;">📣 Tokenni reklama qilish</div>
+        <div class="hint" style="margin:0 0 4px;">Tokeningiz 24 soat davomida bozor ro'yxatining eng tepasida 📣 belgisi bilan turadi. Ko'proq odam ko'radi - ko'proq savdo bo'ladi.</div>
+        <button class="stars-btn" id="promo-stars-btn">⭐ Stars bilan reklama qilish</button>
+      </div>
+      <div class="card" id="detail-limit-card" style="margin-top:14px;">
+        <div style="font-weight:700;margin-bottom:4px;">🎯 Limit buyurtma</div>
+        <div class="hint" style="margin:0 0 10px;">Narx siz belgilagan darajaga yetganda bot avtomatik sotib oladi yoki sotadi va sizga xabar yuboradi.</div>
+        <div class="limit-toggle" id="limit-side">
+          <button data-lside="buy" class="active" style="flex:1;">Arzonlasa ol</button>
+          <button data-lside="sell" style="flex:1;">Qimmatlasa sot</button>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Miqdor</label><input id="limit-amount" type="number" placeholder="10" min="0.0001" step="0.0001" /></div>
+          <div class="field"><label>Narx</label><input id="limit-price" type="number" placeholder="0.0050" min="0" step="0.0001" /></div>
+        </div>
+        <button class="primary" id="limit-create-btn">Buyurtma qo'yish</button>
+        <div id="limit-orders" style="margin-top:8px;"></div>
+      </div>
+      <div class="card" id="detail-comments-card" style="margin-top:14px;">
+        <div style="font-weight:700;margin-bottom:6px;">💬 Izohlar</div>
+        <div id="comments-list"></div>
+        <div class="comment-form">
+          <input id="comment-input" type="text" maxlength="280" placeholder="Fikringizni yozing..." />
+          <button id="comment-send">➤</button>
+        </div>
+      </div>
     <div class="section-title">Savdo tarixi</div>
     <div id="history-list"></div>
   </div>
@@ -1199,7 +1309,7 @@
         <button class="fav-star ${isFav ? "active" : ""}" data-fav-id="${t.id}">${isFav ? "★" : "☆"}</button>
         ${tokenBadgeHtml(t)}
         <div class="token-info">
-          <div class="token-name">${esc(t.name)} ${proTag}</div>
+          <div class="token-name">${esc(t.name)} ${proTag}${t.is_promoted ? '<span class="promo-tag">📣</span>' : ""}</div>
           <div class="token-sub">$${esc(t.symbol)} · ${fmt(t.circulating_supply)}/${fmt(t.max_supply)}</div>
         </div>
         <div class="token-price">
@@ -1359,6 +1469,8 @@
     loadStreak();
     loadMissions();
     loadReferralHint();
+    loadAchievements();
+    loadWheel();
 
     api(`/user/${currentUser.id}/wallet`).then(w=>{
       document.getElementById("wallet-code-preview").textContent = w.wallet_code;
@@ -1528,6 +1640,7 @@
 
       const proCard = document.getElementById("detail-pro-card");
       const isOwner = currentUser && Number(token.owner_id) === currentUser.id;
+      document.getElementById("detail-promo-card").style.display = isOwner && !token.is_hidden ? "block" : "none";
       if(isOwner && !token.is_pro){
         proCard.style.display = "block";
         const cost = await getProBadgeCost();
@@ -1560,6 +1673,8 @@
     favBtn.classList.toggle("active", isFav);
 
     refreshAlertState(selectedTokenId);
+    loadComments(selectedTokenId);
+    loadOrders(selectedTokenId);
 
     await refreshTokenDetail(data.id);
 
@@ -2336,7 +2451,7 @@
           <div class="mission-emoji">${m.emoji}</div>
           <div class="mission-info">
             <div class="mission-title">${esc(m.title)}</div>
-            <div class="mission-meta">${m.period === "daily" ? "Kunlik" : "Bir martalik"} · ${m.progress}/${m.target}</div>
+            <div class="mission-meta">${tr(m.period === "daily" ? "Kunlik" : "Bir martalik")} · ${m.progress}/${m.target}</div>
             <div class="mission-bar"><i style="width:${pct}%"></i></div>
           </div>
           ${btn}
@@ -2362,8 +2477,9 @@
   async function loadReferralHint(){
     try{
       const r = await api("/referral-info");
-      document.getElementById("referral-hint").textContent =
-        `Do'stingiz havolangiz orqali kirib, birinchi savdosini qilganda ikkalangizga ham +${r.reward} Nex Trade beriladi.`;
+      document.getElementById("referral-hint").textContent = LANG === "ru"
+        ? `Когда друг зайдёт по вашей ссылке и совершит первую сделку, вы оба получите +${r.reward} Nex Trade.`
+        : `Do'stingiz havolangiz orqali kirib, birinchi savdosini qilganda ikkalangizga ham +${r.reward} Nex Trade beriladi.`;
     }catch(e){ /* jim */ }
   }
 
@@ -2459,6 +2575,303 @@
       }
     }catch(e){ /* jim */ }
     openShare(pct, what, text);
+  });
+
+
+  // ================================================================
+  // ====== v4: IZOHLAR, LIMIT, STARS, G'ILDIRAK, DARAJA, TIL ======
+  // ================================================================
+  let limitSide = "buy";
+  let starsPricesCache = null;
+
+  async function getStarsPrices(){
+    if(starsPricesCache) return starsPricesCache;
+    try{ starsPricesCache = await api("/stars/prices"); }catch{ starsPricesCache = { pro: 50, promo: 25 }; }
+    return starsPricesCache;
+  }
+
+  // --- Izohlar
+  function timeAgo(d){
+    const s = Math.max(1, Math.floor((Date.now() - new Date(d).getTime()) / 1000));
+    if(s < 60) return tr(`${s} soniya oldin`);
+    if(s < 3600) return tr(`${Math.floor(s/60)} daqiqa oldin`);
+    if(s < 86400) return tr(`${Math.floor(s/3600)} soat oldin`);
+    return fmtDate(d);
+  }
+  async function loadComments(tokenId){
+    const list = document.getElementById("comments-list");
+    try{
+      const cs = await api(`/tokens/${tokenId}/comments`);
+      list.innerHTML = cs.length ? cs.map(c=>`
+        <div class="comment">
+          <div class="comment-head">
+            <span><b>${c.username ? "@" + esc(c.username) : "Foydalanuvchi"}</b>${c.is_creator ? '<span class="creator-tag">' + tr("Yaratuvchi") + '</span>' : ""}</span>
+            <span>${timeAgo(c.created_at)}${currentUser?.is_admin ? ` <button class="comment-del" data-cid="${c.id}" title="#${c.id}">🗑 #${c.id}</button>` : ""}</span>
+          </div>
+          <div class="comment-text">${esc(c.text)}</div>
+        </div>`).join("")
+        : `<div class="hint" style="padding:6px 0;">${tr("Hali izoh yo'q - birinchi bo'lib fikr bildiring!")}</div>`;
+      list.querySelectorAll(".comment-del").forEach(b=>{
+        b.addEventListener("click", async ()=>{
+          try{ await api(`/admin/comments/${b.dataset.cid}`, { method: "DELETE" }); toast("🗑"); loadComments(tokenId); }
+          catch(e){ toast(friendlyError(e)); }
+        });
+      });
+    }catch(e){ list.innerHTML = ""; }
+  }
+  async function sendComment(){
+    const input = document.getElementById("comment-input");
+    const text = input.value.trim();
+    if(!text) return;
+    const btn = document.getElementById("comment-send");
+    btn.disabled = true;
+    try{
+      await api(`/tokens/${selectedTokenId}/comments`, { method: "POST", body: JSON.stringify({ text }) });
+      input.value = "";
+      loadComments(selectedTokenId);
+    }catch(e){ toast(friendlyError(e)); }
+    finally{ btn.disabled = false; }
+  }
+  document.getElementById("comment-send").addEventListener("click", sendComment);
+  document.getElementById("comment-input").addEventListener("keydown", e=>{ if(e.key === "Enter") sendComment(); });
+
+  // --- Limit buyurtmalar
+  document.querySelectorAll("#limit-side button").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      document.querySelectorAll("#limit-side button").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      limitSide = b.dataset.lside;
+    });
+  });
+
+  const ORDER_STATUS = { open: "⏳ Kutilmoqda", filled: "✅ Bajarildi", cancelled: "✖️ Bekor", failed: "⚠️ Bajarilmadi", processing: "⚙️ Bajarilmoqda" };
+  async function loadOrders(tokenId){
+    const wrap = document.getElementById("limit-orders");
+    try{
+      const os = await api(`/user/${currentUser.id}/orders?token_id=${tokenId}`);
+      wrap.innerHTML = os.slice(0, 8).map(o=>`
+        <div class="order-row">
+          <div>
+            <div style="font-weight:700;color:${o.side === "buy" ? "var(--up)" : "var(--down)"};">${o.side === "buy" ? tr("Olish") : tr("Sotish")} ${fmt(o.amount)} ${tr("ta")} @ ${Number(o.trigger_price).toFixed(4)}</div>
+            <div class="st" style="color:var(--muted);">${tr(ORDER_STATUS[o.status] || o.status)}${o.note && o.status === "failed" ? " · " + esc(o.note) : ""}</div>
+          </div>
+          ${o.status === "open" ? `<button class="order-cancel" data-oid="${o.id}">${tr("Bekor qilish")}</button>` : ""}
+        </div>`).join("");
+      wrap.querySelectorAll(".order-cancel").forEach(b=>{
+        b.addEventListener("click", async ()=>{
+          try{ await api(`/orders/${b.dataset.oid}`, { method: "DELETE" }); loadOrders(tokenId); }
+          catch(e){ toast(friendlyError(e)); }
+        });
+      });
+    }catch(e){ wrap.innerHTML = ""; }
+  }
+  document.getElementById("limit-create-btn").addEventListener("click", async ()=>{
+    const amount = Number(document.getElementById("limit-amount").value);
+    const price = Number(document.getElementById("limit-price").value);
+    if(!amount || !price){ toast(tr("Miqdor va narxni kiriting")); return; }
+    const btn = document.getElementById("limit-create-btn");
+    const restore = setLoading(btn, "");
+    try{
+      await api("/orders", { method: "POST", body: JSON.stringify({ token_id: Number(selectedTokenId), side: limitSide, amount, trigger_price: price }) });
+      toast(tr("🎯 Buyurtma qo'yildi! Narx yetganda bot xabar beradi"));
+      document.getElementById("limit-amount").value = "";
+      document.getElementById("limit-price").value = "";
+      loadOrders(selectedTokenId);
+    }catch(e){ toast(friendlyError(e)); }
+    finally{ restore(); }
+  });
+
+  // --- Telegram Stars
+  async function buyWithStars(kind){
+    const btn = document.getElementById(kind === "pro" ? "pro-stars-btn" : "promo-stars-btn");
+    const restore = setLoading(btn, "");
+    try{
+      const r = await api(`/tokens/${selectedTokenId}/stars-invoice`, { method: "POST", body: JSON.stringify({ kind }) });
+      if(!tg?.openInvoice){ toast(tr("To'lov faqat Telegram ichida ishlaydi")); return; }
+      tg.openInvoice(r.link, async status=>{
+        if(status === "paid"){
+          toast(kind === "pro" ? tr("✅ Token PRO bo'ldi!") : tr("📣 Token 24 soat tepada turadi!"));
+          tg?.HapticFeedback?.notificationOccurred?.("success");
+          setTimeout(()=>{ refreshTokenDetail(selectedTokenId); loadMarket(); }, 1500);
+        }else if(status === "failed"){
+          toast(tr("To'lov amalga oshmadi"));
+        }
+      });
+    }catch(e){ toast(friendlyError(e)); }
+    finally{ restore(); }
+  }
+  document.getElementById("pro-stars-btn").addEventListener("click", ()=> buyWithStars("pro"));
+  document.getElementById("promo-stars-btn").addEventListener("click", ()=> buyWithStars("promo"));
+  getStarsPrices().then(p=>{
+    document.getElementById("pro-stars-btn").textContent = `⭐ ${p.pro} Stars ${tr("bilan")}`;
+    document.getElementById("promo-stars-btn").textContent = `⭐ ${p.promo} Stars · ${tr("24 soat reklama")}`;
+  });
+
+  // --- Daraja va nishonlar
+  async function loadAchievements(){
+    try{
+      const a = await api(`/user/${currentUser.id}/achievements`);
+      document.getElementById("level-num").textContent = `Lv ${a.level}`;
+      document.getElementById("level-xp").textContent = `${fmt(a.xp)} XP`;
+      document.getElementById("level-next").textContent = `${tr("Keyingi")}: ${fmt(a.nextLevelXp)} XP`;
+      document.getElementById("level-bar").style.width = `${Math.round(a.progress * 100)}%`;
+      document.getElementById("badge-grid").innerHTML = a.badges.map(b=>
+        `<div class="badge ${b.earned ? "earned" : ""}" title="${esc(tr(b.desc))}">${b.emoji}<span>${esc(tr(b.title))}</span></div>`).join("");
+    }catch(e){ /* jim */ }
+  }
+
+  // --- Omad g'ildiragi
+  let wheelPrizes = [5,10,20,50,100,250,500];
+  let wheelRotation = 0;
+  const WHEEL_COLORS = ["#8B7CFF","#FF7A45","#00B37A","#E1435A","#3A7BFF","#C9821A","#9B30FF"];
+  function drawWheel(){
+    const n = wheelPrizes.length, seg = 360 / n;
+    const wheel = document.getElementById("wheel");
+    wheel.style.background = `conic-gradient(${wheelPrizes.map((_,i)=>`${WHEEL_COLORS[i % WHEEL_COLORS.length]} ${i*seg}deg ${(i+1)*seg}deg`).join(",")})`;
+    wheel.innerHTML = wheelPrizes.map((p,i)=>`<div class="wheel-label" style="transform:rotate(${i*seg + seg/2}deg)"><span>${p}</span></div>`).join("");
+  }
+  async function loadWheel(){
+    try{
+      const w = await api(`/user/${currentUser.id}/wheel`);
+      wheelPrizes = w.prizes;
+      drawWheel();
+      const btn = document.getElementById("wheel-spin-btn");
+      btn.disabled = !w.canSpin;
+      document.getElementById("wheel-status").textContent = w.canSpin
+        ? tr("Bugungi tekin aylantirish tayyor!")
+        : `${tr("Keyingi aylantirish")}: ${fmtDate(w.nextAt)}`;
+      document.getElementById("wheel-hint").textContent = w.canSpin
+        ? tr("✨ Bugun aylantirmadingiz - omadingizni sinang!")
+        : tr("Bugun aylantirildi. Ertaga qayta keling!");
+    }catch(e){ /* jim */ }
+  }
+  document.getElementById("wheel-open-btn").addEventListener("click", ()=>{
+    document.getElementById("wheel-overlay").classList.add("active");
+    document.getElementById("wheel-result").textContent = "";
+    loadWheel();
+  });
+  document.getElementById("wheel-back").addEventListener("click", ()=> document.getElementById("wheel-overlay").classList.remove("active"));
+  document.getElementById("wheel-spin-btn").addEventListener("click", async ()=>{
+    const btn = document.getElementById("wheel-spin-btn");
+    btn.disabled = true;
+    try{
+      const r = await api(`/user/${currentUser.id}/wheel/spin`, { method: "POST" });
+      const seg = 360 / wheelPrizes.length;
+      // Ko'rsatkich tepada: tanlangan bo'lak markazi 0° ga kelishi kerak
+      const target = 360 - (r.index * seg + seg / 2);
+      wheelRotation += 360 * 5 + ((target - (wheelRotation % 360)) + 360) % 360;
+      document.getElementById("wheel").style.transform = `rotate(${wheelRotation}deg)`;
+      setTimeout(()=>{
+        document.getElementById("wheel-result").textContent = `🎉 +${r.reward} Nex!`;
+        currentUser.nex_trade_balance = r.newBalance;
+        setBalance(r.newBalance);
+        tg?.HapticFeedback?.notificationOccurred?.("success");
+        loadWheel();
+      }, 4300);
+    }catch(e){ toast(friendlyError(e)); btn.disabled = false; }
+  });
+
+  // ================================================================
+  // ====== TIL: O'ZBEKCHA / RUSCHA ======
+  // ================================================================
+  const RU = {
+    "Mening balansim":"Мой баланс","Bozor":"Рынок","Portfelim":"Портфель","Yaratish":"Создать","Liga":"Лига","Profil":"Профиль",
+    "🐋 Gigant tokenlar":"🐋 Гигантские токены","Top tokenlar":"Топ токенов","⭐ Sevimlilar":"⭐ Избранное","Barcha tokenlar":"Все токены",
+    "Qidiruv natijalari":"Результаты поиска","🔥 Trend":"🔥 Тренд","🆕 Yangi":"🆕 Новые","💰 Hajm":"💰 Объём","📈 Narx":"📈 Цена",
+    "Umumiy foyda/zarar":"Общая прибыль/убыток","📤 Ulashish":"📤 Поделиться","Balans tarixi":"История баланса",
+    "Token nomi":"Название токена","Belgisi (symbol)":"Символ","Rasm (logotip) havolasi - ixtiyoriy":"Ссылка на логотип (необязательно)",
+    "Maksimal miqdor (max 10 000)":"Максимальное количество (до 10 000)","Token yaratish":"Создать токен",
+    "Nex Trade":"Nex Trade","Yaratilgan token":"Создано токенов","Taklif qilingan":"Приглашено",
+    "🔥 Kunlik bonus seriyasi":"🔥 Серия ежедневных бонусов","Olish":"Получить","✅ Olindi":"✅ Получено","🎯 Vazifalar":"🎯 Задания",
+    "🎡 Omad g'ildiragi":"🎡 Колесо удачи","👥 Do'stlarni taklif qiling":"👥 Пригласите друзей","👛 Mening hamyonim":"👛 Мой кошелёк",
+    "💳 Nex Tradex to'ldirish / chiqarish":"💳 Пополнить / вывести Nex","🎁 Bonuslar":"🎁 Бонусы","💎 PRO token 🔒":"💎 PRO токен 🔒",
+    "Mening tokenlarim":"Мои токены","🏆 HAFTALIK LIGA":"🏆 НЕДЕЛЬНАЯ ЛИГА","Sizning natijangiz":"Ваш результат",
+    "Mukofotlar (Nex Trade)":"Награды (Nex Trade)","Joriy hafta top-10":"Топ-10 этой недели","O'tgan hafta g'oliblari":"Победители прошлой недели",
+    "Sotib olish":"Купить","Sotish":"Продать","📤 Do'stlarga ulashish":"📤 Поделиться с друзьями","24 soatda":"За 24 часа",
+    "24s savdo hajmi":"Объём за 24ч","Egalar":"Держатели","Bozor qiymati":"Капитализация","🐳 Eng katta egalar":"🐳 Крупнейшие держатели",
+    "🚀 Tokenni kuchaytirish":"🚀 Усилить токен","Kiritish va narxni oshirish":"Вложить и поднять цену","✅ PRO nishon":"✅ PRO значок",
+    "PRO holatiga o'tkazish":"Сделать PRO","📣 Tokenni reklama qilish":"📣 Продвинуть токен","🎯 Limit buyurtma":"🎯 Лимитный ордер",
+    "Arzonlasa ol":"Купить дешевле","Qimmatlasa sot":"Продать дороже","Miqdor":"Количество","Narx":"Цена","Buyurtma qo'yish":"Разместить ордер",
+    "💬 Izohlar":"💬 Комментарии","Savdo tarixi":"История сделок","1 soat":"1 час","24 soat":"24 часа","7 kun":"7 дней",
+    "Tasdiqlash":"Подтвердить","Bekor qilish":"Отмена","Yopish":"Закрыть","📤 Telegram'da ulashish":"📤 Поделиться в Telegram",
+    "Aylantirish!":"Крутить!","Kuniga 1 marta tekin":"Бесплатно раз в день","Hamyon":"Кошелёк","💸 Jo'natish":"💸 Отправить","Jo'natish":"Отправить",
+    "O'tkazmalar tarixi":"История переводов","Qabul qiluvchi hamyon kodi":"Код кошелька получателя","Izoh (ixtiyoriy)":"Комментарий (необязательно)",
+    "Yechib olish":"Вывести","Kutilayotgan bonus":"Ожидаемый бонус","💰 To'ldirish":"💰 Пополнить","💸 Chiqarish":"💸 Вывести",
+    "Hali token yo'q":"Пока нет токенов","Birinchi bo'lib o'zingiznikini yarating!":"Создайте свой первым!","Portfelingiz bo'sh":"Портфель пуст",
+    "Bozordan token sotib oling.":"Купите токены на рынке.","Hali token yaratmagansiz":"Вы ещё не создали токен","Hali savdo bo'lmagan":"Сделок пока нет",
+    "Hali hech kim yo'q":"Пока никого нет","Xush kelibsiz!":"Добро пожаловать!","Rahmat! 🙌":"Спасибо! 🙌",
+    "Ro'yxatdan o'tganingiz uchun sizga sovg'a berildi":"Вам подарок за регистрацию","Yaratuvchi":"Создатель","Olish ":"Купить ",
+    "Kunlik":"Ежедневно","Bir martalik":"Разово","Keyingi":"Следующий","ta":"шт","bilan":"через","24 soat reklama":"реклама 24 часа",
+    "Birinchi savdoingni qil":"Сделай первую сделку","O'z tokeningni yarat":"Создай свой токен","Do'stingni taklif qil (u savdo qilsin)":"Пригласи друга (пусть торгует)",
+    "Bugun 3 ta savdo qil":"Сделай 3 сделки сегодня","Bugun foyda bilan sot":"Продай с прибылью сегодня","Bitta tokenni sevimlilarga qo'sh":"Добавь токен в избранное",
+    "Birinchi qadam":"Первый шаг","Treyder":"Трейдер","Birja bo'risi":"Волк биржи","Yaratuvchi ":"Создатель","Kit":"Кит","Olov":"Огонь",
+    "Temir iroda":"Железная воля","Sardor":"Лидер","Chempion":"Чемпион","PRO":"PRO",
+    "Birinchi savdo":"Первая сделка","10 ta savdo":"10 сделок","100 ta savdo":"100 сделок","Token yaratish ":"Создание токена",
+    "PRO tokenga ega bo'lish":"Иметь PRO токен","10 000 Nex balans":"Баланс 10 000 Nex","7 kunlik seriya":"Серия 7 дней","30 kunlik seriya":"Серия 30 дней",
+    "5 ta do'st taklif qilish":"Пригласить 5 друзей","Ligada top-3":"Топ-3 в лиге",
+    "⏳ Kutilmoqda":"⏳ Ожидает","✅ Bajarildi":"✅ Исполнен","✖️ Bekor":"✖️ Отменён","⚠️ Bajarilmadi":"⚠️ Не исполнен","⚙️ Bajarilmoqda":"⚙️ Исполняется",
+    "Bugungi tekin aylantirish tayyor!":"Бесплатное вращение доступно!","Keyingi aylantirish":"Следующее вращение",
+    "Hali izoh yo'q - birinchi bo'lib fikr bildiring!":"Комментариев пока нет — будьте первым!","Fikringizni yozing...":"Напишите комментарий...",
+    "🔍 Token nomi yoki belgisi bo'yicha qidirish":"🔍 Поиск по названию или символу","Miqdor va narxni kiriting":"Введите количество и цену",
+    "🎯 Buyurtma qo'yildi! Narx yetganda bot xabar beradi":"🎯 Ордер размещён! Бот сообщит при исполнении",
+    "✅ Token PRO bo'ldi!":"✅ Токен стал PRO!","📣 Token 24 soat tepada turadi!":"📣 Токен 24 часа будет наверху!","To'lov amalga oshmadi":"Оплата не прошла",
+    "To'lov faqat Telegram ichida ishlaydi":"Оплата работает только в Telegram",
+    "✨ Bugun aylantirmadingiz - omadingizni sinang!":"✨ Вы ещё не крутили сегодня — испытайте удачу!","Bugun aylantirildi. Ertaga qayta keling!":"Сегодня уже крутили. Приходите завтра!",
+    "Kuniga 1 marta tekin aylantiring - 500 Nex gacha yutuq!":"Крутите бесплатно раз в день — выигрыш до 500 Nex!",
+    "Olish":"Получить","Sotish ":"Продать ","so'm":"сум",
+    "Hamyon raqamingiz va boshqalarga Nex Trade jo'natish":"Номер кошелька и переводы Nex Trade другим",
+    "Tayyor summalar bilan balansingizni to'ldiring yoki chiqaring":"Пополняйте или выводите баланс готовыми суммами",
+    "Tokeningizdan tushgan komissiya bonuslari - haftada 1 marta yechib oling":"Бонусы с комиссий вашего токена — вывод раз в неделю",
+    "Real pulga bog'liq token yaratish. Litsenziya jarayoni tugagach ochiladi.":"Токены за реальные деньги. Откроется после получения лицензии.",
+    "Har kuni kiring - bonus 5 dan 100 Nex gacha o'sadi":"Заходите каждый день — бонус растёт с 5 до 100 Nex",
+    "Narx siz belgilagan darajaga yetganda bot avtomatik sotib oladi yoki sotadi va sizga xabar yuboradi.":"Когда цена достигнет заданного уровня, бот автоматически купит или продаст и пришлёт уведомление.",
+    "Tokeningiz 24 soat davomida bozor ro'yxatining eng tepasida 📣 belgisi bilan turadi. Ko'proq odam ko'radi - ko'proq savdo bo'ladi.":"Ваш токен 24 часа будет вверху списка рынка со значком 📣. Больше просмотров — больше сделок.",
+    "O'z Nex Trade balansingizdan mablag' kiriting - bu summa qaytarilmaydi, lekin tokeningizning narxini butunlay (doimiy) oshiradi.":"Вложите Nex Trade со своего баланса — сумма не возвращается, но цена токена растёт навсегда.",
+    "Hafta davomida tokenlarni":"В течение недели продавайте токены","Nex Trade jo'natish/qabul qilish":"Отправка и получение Nex Trade",
+  };
+  let LANG = "uz";
+  try{ LANG = localStorage.getItem("nextrade-lang") || ((tg?.initDataUnsafe?.user?.language_code || "").startsWith("ru") ? "ru" : "uz"); }catch(e){}
+
+  function tr(text){
+    if(LANG !== "ru" || text == null) return text;
+    const t = String(text);
+    if(RU[t]) return RU[t];
+    // "5 soniya oldin" kabi raqamli iboralar
+    return t.replace(/(\d+) soniya oldin/, "$1 сек. назад").replace(/(\d+) daqiqa oldin/, "$1 мин. назад").replace(/(\d+) soat oldin/, "$1 ч. назад");
+  }
+  function translateNode(root){
+    if(LANG !== "ru" || !root) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    let n;
+    while((n = walker.nextNode())){
+      const raw = n.nodeValue, t = raw.trim();
+      if(t && RU[t]) n.nodeValue = raw.replace(t, RU[t]);
+    }
+    if(root.querySelectorAll) root.querySelectorAll("input[placeholder]").forEach(i=>{ if(RU[i.placeholder]) i.placeholder = RU[i.placeholder]; });
+  }
+  if(LANG === "ru"){
+    translateNode(document.body);
+    new MutationObserver(ms=>{
+      for(const m of ms){
+        m.addedNodes.forEach(nd=>{
+          if(nd.nodeType === 1) translateNode(nd);
+          else if(nd.nodeType === 3 && RU[nd.nodeValue.trim()]) nd.nodeValue = RU[nd.nodeValue.trim()];
+        });
+        if(m.type === "characterData" && RU[m.target.nodeValue?.trim()]) m.target.nodeValue = RU[m.target.nodeValue.trim()];
+      }
+    }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+  function refreshLangButtons(){
+    document.querySelectorAll(".lang-btn").forEach(b=> b.classList.toggle("active", b.dataset.lang === LANG));
+  }
+  refreshLangButtons();
+  document.querySelectorAll(".lang-btn").forEach(b=>{
+    b.addEventListener("click", async ()=>{
+      if(b.dataset.lang === LANG) return;
+      try{ localStorage.setItem("nextrade-lang", b.dataset.lang); }catch(e){}
+      try{ await api(`/user/${currentUser.id}/language`, { method: "POST", body: JSON.stringify({ lang: b.dataset.lang }) }); }catch(e){}
+      location.reload();
+    });
   });
 
 

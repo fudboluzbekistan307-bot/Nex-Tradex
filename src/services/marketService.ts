@@ -14,6 +14,7 @@ export type MarketSort = "trend" | "new" | "volume" | "price";
 // u ham yo'q bo'lsa - boshlang'ich narx) va 24 soatlik hajm.
 const STATS_SELECT = `
   t.*,
+  COALESCE(t.promoted_until > NOW(), false) AS is_promoted,
   COALESCE(v.volume_24h, 0) AS volume_24h,
   COALESCE(v.trades_24h, 0) AS trades_24h,
   CASE WHEN COALESCE(p24.price, pf.price, t.base_price) > 0
@@ -55,7 +56,7 @@ export async function listTokensWithStats(opts: {
 }) {
   const sort: MarketSort = opts.sort && ORDER_BY[opts.sort] ? opts.sort : "trend";
   const params: any[] = [];
-  const where: string[] = [];
+  const where: string[] = ["t.is_hidden = false"];
 
   if (opts.search) {
     params.push(`%${opts.search}%`);
@@ -71,7 +72,7 @@ export async function listTokensWithStats(opts: {
      FROM tokens t
      ${STATS_JOINS}
      ${where.length ? "WHERE " + where.join(" AND ") : ""}
-     ORDER BY ${ORDER_BY[sort]}
+     ORDER BY (COALESCE(t.promoted_until > NOW(), false)) DESC, ${ORDER_BY[sort]}
      LIMIT $${params.length}`,
     params
   );

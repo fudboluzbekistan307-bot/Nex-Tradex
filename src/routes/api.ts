@@ -30,10 +30,18 @@ import { getBonusInfo, claimBonus } from "../services/bonusService";
 import { getTopupWithdrawInfo, topupNexTradex, withdrawNexTradex } from "../services/nexTopupService";
 import { floor4 } from "../services/pricingService";
 import { requireAuth, requireSelf, requireAdmin } from "../middleware/auth";
+import { bot } from "../bot/bot";
 import { sendTelegramMessage } from "../bot/bot";
 import { listTokensWithStats, getTokenStats, getTokenChartRange, getNexTradeChartRange, MarketSort } from "../services/marketService";
 import { getStreakStatus, claimStreakBonus, getMissions, claimMission, getLeague, REFERRAL_REWARD } from "../services/engagementService";
 import { announceNewToken } from "../services/announceService";
+import { containsBadWords, deleteComment } from "../services/moderationService";
+import {
+  getWheelStatus, spinWheel, getAchievements, listComments, addComment,
+  createLimitOrder, listLimitOrders, cancelLimitOrder,
+  starsPrices, validateStarsPurchase, buildPayload, StarsKind,
+} from "../services/featuresService";
+import { isAdmin } from "../middleware/auth";
 
 export const apiRouter = Router();
 
@@ -98,6 +106,14 @@ apiRouter.get("/tokens/featured", ah(async (_req, res) => {
   res.json(await listTokensWithStats({ featured: true, sort: "price" }));
 }));
 
+apiRouter.get("/tokens/:id/comments", ah(async (req, res) => {
+  res.json(await listComments(Number(req.params.id)));
+}));
+
+apiRouter.get("/stars/prices", (_req, res) => {
+  res.json(starsPrices());
+});
+
 apiRouter.get("/referral-info", (_req, res) => {
   res.json({ reward: REFERRAL_REWARD });
 });
@@ -159,7 +175,7 @@ apiRouter.use(requireAuth);
 // Foydalanuvchini ro'yxatdan o'tkazish / olish. Referal endi imzolangan
 // initData'dagi start_param'dan olinadi (requireAuth ichida).
 apiRouter.post("/user/init", ah(async (req, res) => {
-  res.json(req.user);
+  res.json({ ...req.user, is_admin: isAdmin(req.user) });
 }));
 
 // ---------- Faqat o'z ma'lumotlari (/user/:userId/...) ----------
@@ -184,6 +200,34 @@ apiRouter.get("/user/:userId/streak", ahUser(async (req, res) => {
 
 apiRouter.post("/user/:userId/daily-bonus", ahUser(async (req, res) => {
   res.json(await claimStreakBonus(uid(req)));
+}));
+
+// Omad g'ildiragi
+apiRouter.get("/user/:userId/wheel", ahUser(async (req, res) => {
+  res.json(await getWheelStatus(uid(req)));
+}));
+
+apiRouter.post("/user/:userId/wheel/spin", ahUser(async (req, res) => {
+  res.json(await spinWheel(uid(req)));
+}));
+
+// Daraja va nishonlar
+apiRouter.get("/user/:userId/achievements", ahUser(async (req, res) => {
+  res.json(await getAchievements(uid(req)));
+}));
+
+// Limit buyurtmalar (?token_id= bilan faqat shu token)
+apiRouter.get("/user/:userId/orders", ahUser(async (req, res) => {
+  const tokenId = Number(req.query.token_id) || undefined;
+  res.json(await listLimitOrders(uid(req), tokenId));
+}));
+
+// Til (bot xabarlari uchun)
+apiRouter.post("/user/:userId/language", ahUser(async (req, res) => {
+  const lang = req.body?.lang === "ru" ? "ru" : "uz";
+  const { pool } = await import("../db/pool");
+  await pool.query("UPDATE users SET language = $1 WHERE id = $2", [lang, uid(req)]);
+  res.json({ lang });
 }));
 
 // Vazifalar
@@ -264,6 +308,9 @@ apiRouter.post("/tokens", ahUser(async (req, res) => {
       .refine((u) => /^https?:\/\//i.test(u), "Rasm havolasi http(s):// bilan boshlanishi kerak")
       .optional(),
   }).safeParse(req.body);
+  if (parsed.success && (containsBadWords(parsed.data.name) || containsBadWords(parsed.data.symbol))) {
+    return res.status(400).json({ error: "Token nomida nomaqbul so'zlar bor. Boshqa nom tanlang" });
+  }
   if (!parsed.success) {
     const msg = parsed.error.issues[0]?.message;
     return res.status(400).json({ error: msg && !msg.startsWith("Expected") && !msg.startsWith("Invalid") ? msg : "Hamma maydonlarni to'g'ri to'ldiring" });
@@ -331,6 +378,49 @@ apiRouter.delete("/alerts", ahUser(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// ---------- Izohlar ----------
+apiRouter.post("/tokens/:id/comments", ahUser(async (req, res) => {
+  const parsed = z.object({ text: z.string().min(1).max(280) }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Izoh 1-280 belgidan iborat bo'lsin" });
+  res.json(await addComment(uid(req), Number(req.params.id), parsed.data.text));
+}));
+
+// ---------- Limit buyurtmalar ----------
+apiRouter.post("/orders", ahUser(async (req, res) => {
+  const parsed = z.object({
+    token_id: id,
+    side: z.enum(["buy", "sell"]),
+    amount: posAmount,
+    trigger_price: z.number().finite().positive(),
+  }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Ma'lumotlarni to'g'ri kiriting" });
+  const d = parsed.data;
+  res.json(await createLimitOrder(uid(req), d.token_id, d.side, d.amount, d.trigger_price));
+}));
+
+apiRouter.delete("/orders/:orderId", ahUser(async (req, res) => {
+  await cancelLimitOrder(uid(req), Number(req.params.orderId));
+  res.json({ ok: true });
+}));
+
+// ---------- Telegram Stars ----------
+// Mini App ichida to'lov oynasini ochish uchun invoice havolasi yaratadi
+apiRouter.post("/tokens/:id/stars-invoice", ahUser(async (req, res) => {
+  const kind: StarsKind = req.body?.kind === "promo" ? "promo" : "pro";
+  const tokenId = Number(req.params.id);
+  const t = await validateStarsPurchase(kind, tokenId, uid(req));
+  const prices = starsPrices();
+  const amount = kind === "pro" ? prices.pro : prices.promo;
+  const title = kind === "pro" ? `✅ PRO nishon: ${t.symbol}` : `📣 Reklama 24 soat: ${t.symbol}`;
+  const description = kind === "pro"
+    ? `${t.name} tokeni bozorda "PRO" belgisi bilan ajralib turadi.`
+    : `${t.name} tokeni 24 soat davomida bozor ro'yxatining eng tepasida turadi.`;
+  const link = await bot.api.createInvoiceLink(title, description, buildPayload(kind, tokenId, uid(req)), "", "XTR", [
+    { label: title, amount },
+  ]);
+  res.json({ link, stars: amount });
+}));
+
 // ---------- Haftalik liga ----------
 apiRouter.get("/league", ah(async (req, res) => {
   res.json(await getLeague(uid(req)));
@@ -354,6 +444,11 @@ apiRouter.post("/nextrade/withdraw", ahUser(async (req, res) => {
 // imzolangan initData'dan olinadi
 // ================================================================
 apiRouter.use("/admin", requireAdmin);
+
+apiRouter.delete("/admin/comments/:commentId", ahUser(async (req, res) => {
+  await deleteComment(Number(req.params.commentId));
+  res.json({ ok: true });
+}));
 
 apiRouter.get("/admin/frozen", ah(async (_req, res) => {
   const [balances, total] = await Promise.all([listFrozenBalances(), getTotalFrozen()]);
