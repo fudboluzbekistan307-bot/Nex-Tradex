@@ -1,0 +1,2130 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>NexTrade</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #080B13;
+    --bg-elevated: #121728;
+    --card: #161C30;
+    --border: #262E48;
+    --text: #EDEFF5;
+    --muted: #7C8699;
+    --gold: #FFC857;
+    --ember: #FF7A45;
+    --violet: #8B7CFF;
+    --up: #00D68F;
+    --down: #FF5C72;
+    --radius: 16px;
+  }
+  html[data-theme="light"]{
+    --bg: #F5F6FA;
+    --bg-elevated: #FFFFFF;
+    --card: #FFFFFF;
+    --border: #E4E7EF;
+    --text: #171A22;
+    --muted: #7C8699;
+    --gold: #C9821A;
+    --ember: #E85D2C;
+    --violet: #6C5CE7;
+    --up: #12A876;
+    --down: #E1435A;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+  .flash-up{ animation:flashUp .7s ease; }
+  .flash-down{ animation:flashDown .7s ease; }
+  @keyframes flashUp{ 0%{ background:rgba(0,214,143,.28); } 100%{ background:transparent; } }
+  @keyframes flashDown{ 0%{ background:rgba(255,92,114,.28); } 100%{ background:transparent; } }
+  button, .token-row, .lb-card, .featured-card, .tab-btn{ transition:transform .12s ease; }
+  button:active, .token-row:active, .lb-card:active, .featured-card:active{ transform:scale(.96); }
+  @keyframes fadeUpIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
+  .stagger-in{ animation:fadeUpIn .38s ease backwards; }
+
+  /* ====== JONLI TICKER TAPE - signatura elementi ====== */
+  .ticker-wrap{
+    overflow:hidden; white-space:nowrap; border-bottom:1px solid var(--border);
+    background:linear-gradient(90deg, var(--bg-elevated), var(--card));
+    padding:8px 0; position:relative;
+  }
+  .ticker-wrap::before, .ticker-wrap::after{
+    content:""; position:absolute; top:0; bottom:0; width:24px; z-index:2; pointer-events:none;
+  }
+  .ticker-wrap::before{ left:0; background:linear-gradient(90deg, var(--bg-elevated), transparent); }
+  .ticker-wrap::after{ right:0; background:linear-gradient(270deg, var(--bg-elevated), transparent); }
+  .ticker-track{
+    display:inline-flex; gap:0; animation:tickerScroll 38s linear infinite;
+    will-change:transform;
+  }
+  .ticker-wrap:active .ticker-track{ animation-play-state:paused; }
+  @keyframes tickerScroll{
+    from{ transform:translateX(0); }
+    to{ transform:translateX(-50%); }
+  }
+  .ticker-item{
+    display:inline-flex; align-items:baseline; gap:6px; padding:0 18px;
+    font-family:'Space Grotesk',sans-serif; font-size:12.5px; white-space:nowrap;
+  }
+  .ticker-item .sym{ font-weight:700; color:var(--text); }
+  .ticker-item .px{ color:var(--muted); }
+  .ticker-item .chg{ font-weight:700; }
+  .ticker-item .chg.up{ color:var(--up); }
+  .ticker-item .chg.down{ color:var(--down); }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    transition:background .2s, color .2s;
+  }
+  .num{font-family:'Space Grotesk',sans-serif;}
+
+  header.topbar{
+    padding:20px 18px 14px;
+    display:flex; flex-direction:column; gap:4px;
+    position:relative;
+  }
+  .theme-toggle{
+    position:absolute; top:18px; right:18px;
+    width:38px; height:38px; border-radius:12px;
+    background:var(--card); border:1px solid var(--border);
+    color:var(--text); font-size:17px; display:flex; align-items:center; justify-content:center;
+  }
+  .eyebrow{
+    font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--muted); font-weight:600;
+  }
+  .balance-row{
+    display:flex; align-items:baseline; gap:8px; margin-top:2px;
+  }
+  .balance-num{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:34px; font-weight:700; color:var(--gold);
+    border-radius:8px; padding:2px 4px; margin:-2px -4px;
+  }
+  .balance-unit{ color:var(--muted); font-size:14px; font-weight:500; }
+
+  nav.tabs{
+    display:flex; gap:6px; padding:4px 18px 14px;
+  }
+  nav.tabs button{
+    flex:1; padding:10px 4px; border:none; border-radius:12px;
+    background:transparent; color:var(--muted); font-weight:600; font-size:12.5px;
+    font-family:'Inter',sans-serif;
+  }
+  nav.tabs button.active{
+    background:var(--card); color:var(--text); border:1px solid var(--border);
+  }
+
+  main{ padding:0 18px 90px; }
+  .screen{ display:none; }
+  .screen.active{ display:block; }
+
+  .token-row{
+    display:flex; align-items:center; gap:12px;
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); padding:14px; margin-bottom:10px;
+  }
+  .token-badge{
+    width:42px; height:42px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:15px;
+    background:linear-gradient(135deg, #232B40, #171D2E);
+    color:var(--gold); flex-shrink:0; border:1px solid var(--border);
+  }
+  .token-info{ flex:1; min-width:0; }
+  .token-name{ font-weight:600; font-size:14.5px; }
+  .pro-tag{
+    display:inline-block; background:linear-gradient(135deg,#FFC857,#FF8A5C);
+    color:#1A1200; font-size:9.5px; font-weight:800; padding:2px 6px;
+    border-radius:6px; letter-spacing:.03em; vertical-align:middle; margin-left:4px;
+  }
+  .token-sub{ color:var(--muted); font-size:12px; margin-top:2px; }
+  .token-spark{ width:64px; height:28px; flex-shrink:0; }
+  .token-price{ text-align:right; flex-shrink:0; }
+  .token-price .p{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:14px; }
+  .token-price .fill{
+    height:4px; border-radius:2px; background:var(--border); margin-top:6px; overflow:hidden;
+  }
+  .token-price .fill i{ display:block; height:100%; background:var(--gold); }
+
+  .card{
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); padding:16px; margin-bottom:12px;
+  }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:6px; font-weight:600; }
+  .field input{
+    width:100%; background:var(--bg-elevated); border:1px solid var(--border);
+    border-radius:10px; padding:12px 14px; color:var(--text); font-size:15px;
+    font-family:'Inter',sans-serif;
+  }
+  .field input:focus{ outline:none; border-color:var(--gold); }
+  .hint{ font-size:12px; color:var(--muted); margin-top:6px; line-height:1.5; }
+
+  button.primary{
+    width:100%; padding:14px; border:none; border-radius:12px;
+    background:var(--gold); color:#1A1200; font-weight:700; font-size:15px;
+    font-family:'Inter',sans-serif;
+  }
+  button.primary:disabled{ opacity:.5; }
+  button.ghost{
+    width:100%; padding:14px; border:1px solid var(--border); border-radius:12px;
+    background:transparent; color:var(--text); font-weight:600; font-size:15px; margin-top:8px;
+  }
+
+  /* Yuklanmoqda spinneri - tugma bosilganda darhol ko'rinadigan feedback */
+  .spinner{
+    display:inline-block; width:16px; height:16px; margin-right:8px;
+    border:2px solid rgba(0,0,0,.25); border-top-color:currentColor;
+    border-radius:50%; vertical-align:-3px;
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  button.loading{ opacity:.85; pointer-events:none; }
+
+  .empty{
+    text-align:center; padding:56px 20px; color:var(--muted); font-size:14px;
+  }
+  .empty .empty-icon{ font-size:40px; margin-bottom:12px; opacity:.8; }
+  .empty .empty-title{ font-weight:600; color:var(--text); font-size:14.5px; margin-bottom:4px; }
+  .empty .empty-sub{ font-size:12.5px; line-height:1.5; }
+
+  /* Sevimli token (yulduzcha) */
+  .fav-star{
+    background:none; border:none; font-size:18px; padding:4px 8px;
+    color:var(--muted); flex-shrink:0; line-height:1;
+  }
+  .fav-star.active{ color:var(--gold); }
+
+  /* Portfelda foyda/zarar */
+  .pnl{ font-size:11.5px; font-weight:700; margin-top:4px; }
+  .pnl.pos{ color:var(--up); }
+  .pnl.neg{ color:var(--down); }
+  .pnl.flat{ color:var(--muted); }
+  .portfolio-summary{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px 16px; margin-bottom:12px;
+  }
+  .portfolio-summary .label{ font-size:12px; color:var(--muted); }
+  .portfolio-summary .value{ font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700; margin-top:2px; }
+
+  /* Qidiruv tarixi */
+  .search-history{ display:flex; gap:8px; flex-wrap:wrap; margin:-6px 0 14px; }
+  .search-history.hidden{ display:none; }
+  .search-chip{
+    background:var(--card); border:1px solid var(--border); border-radius:20px;
+    padding:6px 12px; font-size:12px; color:var(--muted); font-weight:600;
+  }
+
+  /* Bildirishnoma qo'ng'irog'i (token tafsilot ekrani) */
+  .bell-btn{
+    width:34px; height:34px; border-radius:10px; background:var(--card);
+    border:1px solid var(--border); color:var(--text); font-size:15px; margin-left:auto;
+  }
+  .bell-btn.active{ color:var(--gold); border-color:var(--gold); }
+
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.6);
+    display:none; align-items:flex-end; z-index:100;
+  }
+  .modal-backdrop.active{ display:flex; }
+  .modal{
+    background:var(--bg-elevated); width:100%; border-radius:20px 20px 0 0;
+    padding:20px 18px 28px; border-top:1px solid var(--border);
+  }
+  .modal h3{ font-family:'Space Grotesk',sans-serif; font-size:18px; margin-bottom:4px; }
+  .modal .modal-sub{ color:var(--muted); font-size:13px; margin-bottom:16px; }
+  .buysell-toggle{ display:flex; gap:8px; margin-bottom:14px; }
+  .buysell-toggle button{
+    flex:1; padding:10px; border-radius:10px; border:1px solid var(--border);
+    background:var(--card); color:var(--muted); font-weight:700; font-size:13px;
+  }
+  .buysell-toggle button.active[data-side="buy"]{ background:rgba(0,214,143,.15); color:var(--up); border-color:var(--up); }
+  .buysell-toggle button.active[data-side="sell"]{ background:rgba(255,92,114,.15); color:var(--down); border-color:var(--down); }
+
+  /* Reyting (leaderboard) */
+  .leaderboard{
+    display:flex; gap:10px; overflow-x:auto; padding:2px 2px 14px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .leaderboard::-webkit-scrollbar{ display:none; }
+  .featured-list{
+    display:flex; gap:12px; overflow-x:auto; padding:2px 2px 14px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .featured-list::-webkit-scrollbar{ display:none; }
+  .featured-card{
+    flex-shrink:0; width:150px; border-radius:16px; padding:14px;
+    background:linear-gradient(160deg, #2A2110, #1A1400 70%);
+    border:1px solid var(--gold); position:relative; overflow:hidden;
+  }
+  .featured-card::after{
+    content:"👑"; position:absolute; top:8px; right:10px; font-size:14px; opacity:.8;
+  }
+  .featured-badge{
+    width:38px; height:38px; border-radius:11px; background:#1A1400;
+    border:1px solid var(--gold); display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:13px; color:var(--gold);
+    margin-bottom:10px;
+  }
+  .featured-name{ font-size:13px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .featured-price{ font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:700; color:var(--gold); margin-top:4px; }
+  .lb-card{
+    flex-shrink:0; width:118px; background:var(--card); border:1px solid var(--border);
+    border-radius:14px; padding:12px; position:relative;
+  }
+  .lb-rank{
+    position:absolute; top:8px; right:10px; font-family:'Space Grotesk',sans-serif;
+    font-weight:700; font-size:12px; color:var(--gold); opacity:.7;
+  }
+  .lb-badge{
+    width:34px; height:34px; border-radius:10px; background:var(--bg-elevated);
+    border:1px solid var(--border); display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:12px; color:var(--gold);
+    margin-bottom:8px;
+  }
+  .lb-name{ font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lb-price{ font-family:'Space Grotesk',sans-serif; font-size:12px; color:var(--muted); margin-top:2px; }
+  .section-title{
+    font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted);
+    font-weight:700; margin:4px 0 10px;
+  }
+  .search-box{
+    width:100%; background:var(--card); border:1px solid var(--border);
+    border-radius:12px; padding:11px 14px; color:var(--text); font-size:14px;
+    font-family:'Inter',sans-serif; margin-bottom:14px;
+  }
+  .search-box:focus{ outline:none; border-color:var(--gold); }
+
+  /* Profil */
+  .profile-header{
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+    padding:20px 0 24px;
+  }
+  .profile-avatar{
+    width:64px; height:64px; border-radius:20px;
+    background:linear-gradient(135deg, var(--gold), #FF8A5C);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:24px; color:#1A1200;
+    margin-bottom:10px;
+  }
+  .profile-stats{
+    display:flex; gap:10px; width:100%; margin-top:16px;
+  }
+  .stat-card{
+    flex:1; background:var(--card); border:1px solid var(--border);
+    border-radius:14px; padding:14px; text-align:center;
+  }
+  .stat-num{ font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700; color:var(--gold); }
+  .stat-label{ font-size:11px; color:var(--muted); margin-top:2px; }
+  .referral-box{
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:14px; margin-top:16px; width:100%;
+  }
+  .referral-link{
+    background:var(--bg-elevated); border:1px solid var(--border); border-radius:10px;
+    padding:10px 12px; font-size:12px; color:var(--muted); word-break:break-all; margin-top:8px;
+  }
+  .daily-bonus-box{
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:14px; margin-top:12px; width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .daily-bonus-btn{
+    background:var(--gold); color:#1a1200; border:none; border-radius:10px;
+    padding:10px 16px; font-weight:700; font-size:13px; white-space:nowrap; cursor:pointer;
+  }
+  .daily-bonus-btn:disabled{
+    background:var(--bg-elevated); color:var(--muted); cursor:default;
+  }
+  .subtab-btn{
+    background:var(--card); border:1px solid var(--border); color:var(--muted);
+    border-radius:12px; padding:10px 8px; font-weight:700; font-size:13px; cursor:pointer;
+  }
+  .subtab-btn.active{
+    background:var(--gold); color:#1a1200; border-color:var(--gold);
+  }
+  .preset-btn{
+    background:var(--bg-elevated); border:1px solid var(--border); color:var(--text);
+    border-radius:12px; padding:12px 6px; font-weight:700; font-size:13px; cursor:pointer; text-align:center;
+  }
+  .preset-btn.active{
+    background:linear-gradient(135deg, var(--gold), var(--ember)); color:#1a1200; border-color:var(--gold);
+  }
+
+  /* Token tafsilot ekrani */
+  .detail-overlay{
+    position:fixed; inset:0; background:var(--bg); z-index:70;
+    display:none; flex-direction:column; overflow-y:auto;
+  }
+  .detail-overlay.active{ display:flex; }
+  .detail-header{
+    display:flex; align-items:center; gap:12px; padding:18px;
+    border-bottom:1px solid var(--border);
+  }
+  .back-btn{
+    width:34px; height:34px; border-radius:10px; background:var(--card);
+    border:1px solid var(--border); color:var(--text); font-size:16px;
+  }
+  .detail-body{ padding:18px; flex:1; }
+  .detail-price-big{
+    font-family:'Space Grotesk',sans-serif; font-size:30px; font-weight:700; color:var(--gold);
+  }
+  .detail-meta{ color:var(--muted); font-size:13px; margin-top:2px; }
+  canvas#priceChart{ width:100%; height:140px; margin:18px 0; }
+  canvas#balanceHistoryChart{ width:100%; height:120px; display:block; }
+  canvas#nextradeChart{ width:100%; height:140px; margin:18px 0; display:block; }
+  .history-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 0; border-bottom:1px solid var(--border); font-size:13px;
+  }
+  .history-row .side-buy{ color:var(--up); font-weight:600; }
+  .history-row .side-sell{ color:var(--down); font-weight:600; }
+  .history-row .h-time{ color:var(--muted); font-size:11.5px; }
+  .detail-actions{ display:flex; gap:10px; margin:16px 0; }
+  .detail-actions button{ flex:1; }
+
+  #toast{
+    position:fixed; bottom:100px; left:18px; right:18px;
+    background:var(--card); border:1px solid var(--border); border-radius:12px;
+    padding:12px 16px; font-size:13.5px; text-align:center;
+    opacity:0; transform:translateY(10px); transition:.25s; pointer-events:none; z-index:60;
+  }
+  #toast.show{ opacity:1; transform:translateY(0); }
+
+  /* Yangi foydalanuvchi uchun "sovg'a" popup - jonli, sakrab chiquvchi animatsiya */
+  #welcome-popup-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200;
+    display:none; align-items:center; justify-content:center; padding:24px;
+    backdrop-filter:blur(4px);
+  }
+  #welcome-popup-backdrop.show{ display:flex; }
+  #welcome-popup-card{
+    background:linear-gradient(160deg, var(--bg-elevated), #1A1400 140%);
+    border:1px solid var(--gold); border-radius:24px; padding:32px 24px 26px;
+    text-align:center; max-width:320px; width:100%;
+    transform:scale(.4) translateY(40px); opacity:0;
+    animation:welcomePop .55s cubic-bezier(.34,1.56,.64,1) forwards;
+    box-shadow:0 0 60px rgba(255,193,68,.25);
+  }
+  @keyframes welcomePop{
+    0%{ transform:scale(.4) translateY(40px); opacity:0; }
+    60%{ transform:scale(1.06) translateY(-6px); opacity:1; }
+    100%{ transform:scale(1) translateY(0); opacity:1; }
+  }
+  #welcome-popup-emoji{
+    font-size:52px; margin-bottom:6px;
+    animation:welcomeBounce 1.4s ease-in-out infinite .6s;
+  }
+  @keyframes welcomeBounce{
+    0%,100%{ transform:translateY(0) rotate(0deg); }
+    50%{ transform:translateY(-8px) rotate(-6deg); }
+  }
+  #welcome-popup-title{
+    font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700; color:#fff;
+    margin-bottom:6px;
+  }
+  #welcome-popup-text{ font-size:13.5px; color:var(--muted); margin-bottom:18px; line-height:1.5; }
+  #welcome-popup-amount{
+    font-family:'Space Grotesk',sans-serif; font-size:30px; font-weight:700; color:var(--gold);
+    margin-bottom:22px;
+  }
+  #welcome-popup-btn{
+    width:100%; background:var(--gold); color:#1a1200; border:none; border-radius:14px;
+    padding:14px; font-weight:700; font-size:15px; cursor:pointer;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="theme-toggle" id="theme-toggle" title="Mavzuni almashtirish">🌙</button>
+  <div class="eyebrow">Mening balansim</div>
+  <div class="balance-row">
+    <span class="balance-num num" id="balance">0</span>
+    <span class="balance-unit">Nex Trade</span>
+  </div>
+  <div class="nextrade-price-row" id="nextrade-price-row" style="cursor:pointer;opacity:.75;font-size:12.5px;margin-top:2px;">
+    1 Nex Trade ≈ <span id="nextrade-price-val" class="num">0.9957</span> so'm
+  </div>
+</header>
+
+<div class="ticker-wrap" id="ticker-wrap">
+  <div class="ticker-track" id="ticker-track"></div>
+</div>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="market">Bozor</button>
+  <button class="tab-btn" data-tab="portfolio">Portfelim</button>
+  <button class="tab-btn" data-tab="create">Yaratish</button>
+  <button class="tab-btn" data-tab="profile">Profil</button>
+  <button class="tab-btn" data-tab="admin" id="admin-tab-btn" style="display:none;">Admin</button>
+</nav>
+
+<main>
+  <section class="screen active" id="screen-market">
+    <input class="search-box" id="search-input" type="text" placeholder="🔍 Token nomi yoki belgisi bo'yicha qidirish" autocomplete="off" />
+    <div class="search-history hidden" id="search-history"></div>
+    <div class="section-title" id="featured-title" style="display:none;">🐋 Gigant tokenlar</div>
+    <div id="featured-list" class="featured-list"></div>
+    <div class="section-title" id="leaderboard-title">Top tokenlar</div>
+    <div class="leaderboard" id="leaderboard"></div>
+    <div class="section-title hidden" id="favorites-title" style="display:none;">⭐ Sevimlilar</div>
+    <div class="leaderboard" id="favorites-list"></div>
+    <div class="section-title" id="market-list-title">Barcha tokenlar</div>
+    <div id="market-list"></div>
+  </section>
+
+  <section class="screen" id="screen-portfolio">
+    <div class="portfolio-summary" id="portfolio-summary" style="display:none;">
+      <div>
+        <div class="label">Umumiy foyda/zarar</div>
+        <div class="value num" id="portfolio-pnl-value">0 UZS</div>
+      </div>
+      <div class="pnl" id="portfolio-pnl-pct" style="font-size:15px;">0%</div>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="detail-meta" style="margin-bottom:6px;">Balans tarixi</div>
+      <canvas id="balanceHistoryChart" height="120"></canvas>
+      <div id="balance-history-empty" class="hint" style="display:none;padding:24px 0;text-align:center;">
+        Hali yetarli tarix yo'q - savdo qilgach yoki bonus olgach bu yerda grafik chiqadi.
+      </div>
+    </div>
+    <div id="portfolio-list"></div>
+  </section>
+
+  <section class="screen" id="screen-create">
+    <div class="card">
+      <div class="field">
+        <label>Token nomi</label>
+        <input id="new-name" type="text" placeholder="Masalan: Ali Coin" maxlength="64" />
+      </div>
+      <div class="field">
+        <label>Belgisi (symbol)</label>
+        <input id="new-symbol" type="text" placeholder="Masalan: ALI" maxlength="16" style="text-transform:uppercase" />
+      </div>
+      <div class="field">
+        <label>Rasm (logotip) havolasi - ixtiyoriy</label>
+        <input id="new-image" type="url" placeholder="https://..." />
+        <div class="hint">Token rasmi uchun to'g'ridan-to'g'ri rasm havolasini kiriting (imgur, telegra.ph va h.k.). Bo'sh qoldirsangiz, standart belgi ko'rsatiladi.</div>
+      </div>
+      <div class="field">
+        <label>Maksimal miqdor (max 10 000)</label>
+        <input id="new-supply" type="number" placeholder="10000" max="10000" min="10" />
+        <div class="hint">Kamida 10 ta, ko'pi bilan 10 000 ta bo'lishi kerak.</div>
+        <div class="hint">Narx boshlang'ich holatda 0.0001–0.01 UZS oralig'ida avtomatik belgilanadi va faqat foydalanuvchilarning savdo faoliyatiga qarab o'zgaradi.</div>
+        <div class="hint">💰 Tokeningiz bilan qilingan har bir savdodan sizga <b>0.1%</b> bonus tushadi. O'zingiz esa tokeningizning maksimal <b>25%</b> igacha qismiga egalik qila olasiz (boshqa foydalanuvchilar uchun bu chegara 10%).</div>
+      </div>
+      <button class="primary" id="create-btn">Token yaratish</button>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-profile">
+    <div class="profile-header">
+      <div class="profile-avatar" id="profile-avatar">?</div>
+      <div id="profile-username" style="font-weight:700;font-size:16px;">—</div>
+      <div class="profile-stats">
+        <div class="stat-card">
+          <div class="stat-num" id="stat-balance">0</div>
+          <div class="stat-label">Nex Trade</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-tokens">0</div>
+          <div class="stat-label">Yaratilgan token</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-referrals">0</div>
+          <div class="stat-label">Taklif qilingan</div>
+        </div>
+      </div>
+      <div class="daily-bonus-box">
+        <div>
+          <div style="font-weight:600;font-size:13.5px;">🎁 Kunlik bonus</div>
+          <div class="hint" id="daily-bonus-hint">Har 24 soatda bepul Nex Trade oling</div>
+        </div>
+        <button class="daily-bonus-btn" id="daily-bonus-btn">Olish</button>
+      </div>
+      <div class="referral-box">
+        <div style="font-weight:600;font-size:13.5px;">👥 Do'stlarni taklif qiling</div>
+        <div class="hint">Har bir yangi do'stingiz uchun ikkalangizga ham bonus Nex Trade beriladi.</div>
+        <div class="referral-link" id="referral-link">—</div>
+      </div>
+      <div class="referral-box" id="wallet-open-btn" style="cursor:pointer;background:linear-gradient(135deg, rgba(255,193,68,.12), rgba(255,138,92,.06));border-color:var(--gold);">
+        <div style="font-weight:700;font-size:13.5px;">👛 Mening hamyonim</div>
+        <div class="hint">Hamyon raqamingiz va boshqalarga Nex Trade jo'natish</div>
+        <div class="referral-link num" id="wallet-code-preview" style="color:var(--gold);font-weight:700;">—</div>
+      </div>
+      <div class="referral-box" id="topup-open-btn" style="cursor:pointer;background:linear-gradient(135deg, rgba(0,214,143,.12), rgba(139,124,255,.06));border-color:var(--up);">
+        <div style="font-weight:700;font-size:13.5px;">💳 Nex Tradex to'ldirish / chiqarish</div>
+        <div class="hint">Tayyor summalar bilan balansingizni to'ldiring yoki chiqaring</div>
+      </div>
+      <div class="referral-box" id="bonus-open-btn" style="cursor:pointer;background:linear-gradient(135deg, rgba(255,193,68,.12), rgba(255,122,69,.06));border-color:var(--ember);">
+        <div style="font-weight:700;font-size:13.5px;">🎁 Bonuslar</div>
+        <div class="hint">Tokeningizdan tushgan komissiya bonuslari - haftada 1 marta yechib oling</div>
+        <div class="referral-link num" id="bonus-preview" style="color:var(--ember);font-weight:700;">—</div>
+      </div>
+      <div class="referral-box" id="pro-locked-btn" style="cursor:pointer;">
+        <div style="font-weight:600;font-size:13.5px;">💎 PRO token 🔒</div>
+        <div class="hint">Real pulga bog'liq token yaratish. Litsenziya jarayoni tugagach ochiladi.</div>
+      </div>
+    </div>
+    <div class="section-title">Mening tokenlarim</div>
+    <div id="my-tokens-list"></div>
+  </section>
+
+  <div class="detail-overlay" id="wallet-overlay">
+    <div class="detail-header">
+      <button class="back-btn" id="wallet-back">←</button>
+      <div>
+        <div style="font-weight:700;font-size:15px;">Hamyon</div>
+        <div class="detail-meta">Nex Trade jo'natish/qabul qilish</div>
+      </div>
+    </div>
+    <div class="detail-body">
+      <div class="card" style="text-align:center;">
+        <div class="hint" style="margin-bottom:6px;">Sizning hamyon raqamingiz</div>
+        <div class="num" id="wallet-code-big" style="font-size:22px;font-weight:700;color:var(--gold);letter-spacing:.04em;">—</div>
+        <div class="hint" style="margin-top:8px;">Do'stingizga shu kodni bering - u sizga Nex Trade jo'nata oladi</div>
+      </div>
+
+      <div class="card" style="margin-top:14px;">
+        <div style="font-weight:700;margin-bottom:10px;">💸 Jo'natish</div>
+        <div class="field">
+          <label>Qabul qiluvchi hamyon kodi</label>
+          <input id="wallet-to-code" type="text" placeholder="NX-A1B2C3" style="text-transform:uppercase;" />
+        </div>
+        <div class="field">
+          <label>Miqdor (Nex Trade)</label>
+          <input id="wallet-amount" type="number" placeholder="0" min="0.0001" step="0.0001" />
+        </div>
+        <div class="field">
+          <label>Izoh (ixtiyoriy)</label>
+          <input id="wallet-note" type="text" placeholder="Masalan: qarz" maxlength="140" />
+        </div>
+        <button class="primary" id="wallet-send-btn">Jo'natish</button>
+      </div>
+
+      <div class="section-title" style="margin-top:18px;">O'tkazmalar tarixi</div>
+      <div id="wallet-history-list"></div>
+    </div>
+  </div>
+
+  <div class="detail-overlay" id="topup-overlay">
+    <div class="detail-header">
+      <button class="back-btn" id="topup-back">←</button>
+      <div>
+        <div style="font-weight:700;font-size:15px;">Nex Tradex to'ldirish / chiqarish</div>
+        <div class="detail-meta">Ichki valyuta - real to'lov talab qilinmaydi</div>
+      </div>
+    </div>
+    <div class="detail-body">
+      <div class="tabs" style="display:flex;gap:8px;margin-bottom:14px;">
+        <button class="subtab-btn active" id="topup-tab-in" style="flex:1;">💰 To'ldirish</button>
+        <button class="subtab-btn" id="topup-tab-out" style="flex:1;">💸 Chiqarish</button>
+      </div>
+
+      <div id="topup-panel-in">
+        <div class="card">
+          <div style="font-weight:700;margin-bottom:6px;">Nex Tradex to'ldirish</div>
+          <div class="hint" style="margin-bottom:12px;">Eng kami <b id="topup-min-label">2000</b> Nex Tradex qo'shib ola olasiz. Joriy narxda bu taxminan shuncha UZS bo'ladi. Qulaylik uchun tayyor summalardan birini tanlang - hech qanday amaliyot (to'lov) talab qilinmaydi, miqdor to'g'ridan-to'g'ri balansingizga qo'shiladi.</div>
+          <div id="topup-presets-in" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;"></div>
+          <div class="field">
+            <label>Miqdor (Nex Tradex)</label>
+            <input id="topup-amount-in" type="number" placeholder="2000" min="2000" step="1" />
+          </div>
+          <div class="hint" id="topup-uzs-in" style="font-weight:600;margin-bottom:10px;">≈ 0 UZS</div>
+          <button class="primary" id="topup-submit-in">Nex Tradex to'ldirish</button>
+        </div>
+      </div>
+
+      <div id="topup-panel-out" style="display:none;">
+        <div class="card">
+          <div style="font-weight:700;margin-bottom:6px;">Nex Tradex chiqarish</div>
+          <div class="hint" style="margin-bottom:12px;">Eng kami <b id="withdraw-min-label">5000</b> Nex Tradex chiqarib olishingiz mumkin. Joriy narxda bu taxminan shuncha UZS bo'ladi.</div>
+          <div id="topup-presets-out" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;"></div>
+          <div class="field">
+            <label>Miqdor (Nex Tradex)</label>
+            <input id="topup-amount-out" type="number" placeholder="5000" min="5000" step="1" />
+          </div>
+          <div class="hint" id="topup-uzs-out" style="font-weight:600;margin-bottom:10px;">≈ 0 UZS</div>
+          <button class="primary" id="topup-submit-out">Nex Tradex chiqarish</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-overlay" id="bonus-overlay">
+    <div class="detail-header">
+      <button class="back-btn" id="bonus-back">←</button>
+      <div>
+        <div style="font-weight:700;font-size:15px;">🎁 Bonuslar</div>
+        <div class="detail-meta">Tokeningizdan tushgan komissiya - haftada 1 marta yechib olinadi</div>
+      </div>
+    </div>
+    <div class="detail-body">
+      <div class="card" style="text-align:center;">
+        <div class="hint" style="margin-bottom:6px;">Kutilayotgan bonus</div>
+        <div class="num" id="bonus-pending" style="font-size:26px;font-weight:700;color:var(--ember);">0</div>
+        <div class="hint" style="margin-top:4px;">Nex Trade</div>
+      </div>
+      <div class="card" style="margin-top:14px;">
+        <div class="hint" id="bonus-status" style="margin-bottom:12px;line-height:1.6;">—</div>
+        <button class="primary" id="bonus-claim-btn">Yechib olish</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-overlay" id="locked-overlay">
+    <div class="detail-header">
+      <button class="back-btn" id="locked-back">←</button>
+      <div>
+        <div id="locked-title" style="font-weight:700;font-size:15px;">—</div>
+        <div class="detail-meta">Hozircha mavjud emas</div>
+      </div>
+    </div>
+    <div class="detail-body" style="text-align:center;padding-top:40px;">
+      <div style="font-size:56px;margin-bottom:14px;">🔒</div>
+      <div style="font-weight:700;font-size:17px;margin-bottom:10px;" id="locked-heading">Litsenziya olingandan keyin ochiladi</div>
+      <div class="hint" id="locked-desc" style="font-size:14px;line-height:1.6;">
+        Bu funksiya O'zbekiston Respublikasi qonunchiligiga muvofiq maxsus litsenziya talab qiladi.
+        Litsenziya jarayoni yakunlangach, bu bo'lim avtomatik faollashadi.
+      </div>
+    </div>
+  </div>
+
+  <section class="screen" id="screen-admin">
+    <div class="card">
+      <div style="font-weight:700;font-size:15px;margin-bottom:4px;">❄️ Muzlatilgan mablag' fondi</div>
+      <div class="hint">Har bir savdo komissiyasining 0.15% qismi shu yerga yig'iladi. Faqat siz (admin) botni/mini-appni rivojlantirish uchun bu yerdan yechib olishingiz mumkin.</div>
+      <div style="margin-top:14px;">
+        <div class="label">Jami muzlatilgan</div>
+        <div class="value num" id="admin-frozen-total" style="font-size:22px;font-weight:700;">0 Nex Trade</div>
+      </div>
+    </div>
+
+    <div class="section-title">Token bo'yicha taqsimot</div>
+    <div id="admin-frozen-list"></div>
+
+    <div class="section-title">Yechib olish</div>
+    <div class="card">
+      <div class="hint" id="admin-withdraw-status" style="margin-bottom:12px;line-height:1.6;">—</div>
+      <button class="primary" id="admin-withdraw-all-btn">Hammasini yechib olish</button>
+      <div class="hint" style="margin-top:8px;">Hech narsa kiritish shart emas - tugmani bossangiz, barcha tokenlar bo'yicha muzlatilgan mablag' bir zumda Nex Trade'ga almashtirilib, to'g'ridan-to'g'ri balansingizga tushadi. Faqat haftada 1 marta ishlaydi.</div>
+    </div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<div id="welcome-popup-backdrop">
+  <div id="welcome-popup-card">
+    <div id="welcome-popup-emoji">🎉</div>
+    <div id="welcome-popup-title">Xush kelibsiz!</div>
+    <div id="welcome-popup-text">Ro'yxatdan o'tganingiz uchun sizga sovg'a berildi</div>
+    <div id="welcome-popup-amount">+<span id="welcome-popup-amount-num">100</span> Nex Trade</div>
+    <button id="welcome-popup-btn">Rahmat! 🙌</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="trade-modal">
+  <div class="modal">
+    <h3 id="modal-token-name">—</h3>
+    <div class="modal-sub" id="modal-token-price">—</div>
+    <div class="buysell-toggle">
+      <button data-side="buy" class="active">Sotib olish</button>
+      <button data-side="sell">Sotish</button>
+    </div>
+    <div class="field">
+      <label>Miqdor</label>
+      <input id="trade-amount" type="number" placeholder="0" min="0" />
+    </div>
+    <div class="card" id="trade-preview-box" style="display:none;padding:12px;margin-bottom:0;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;">
+        <span class="hint" style="margin:0;">Kerak bo'ladigan Nex Trade</span>
+        <span class="num" id="trade-preview-nex" style="font-weight:700;">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px;">
+        <span class="hint" style="margin:0;">Taxminiy UZS qiymati</span>
+        <span class="num" id="trade-preview-uzs" style="color:var(--muted);">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px;">
+        <span class="hint" style="margin:0;">Komissiya (0.25%)</span>
+        <span class="num" id="trade-preview-fee" style="color:var(--down);">—</span>
+      </div>
+    </div>
+    <div id="trade-preview-error" class="hint" style="display:none;color:var(--down);"></div>
+    <div class="hint">ℹ️ Tranzaksiyadan <b>0.25%</b> komissiya olinadi (shundan <b>0.1%</b> token yaratuvchisiga bonus sifatida beriladi).</div>
+    <button class="primary" id="trade-confirm">Tasdiqlash</button>
+    <button class="ghost" id="trade-cancel">Bekor qilish</button>
+  </div>
+</div>
+
+<div class="detail-overlay" id="detail-overlay">
+  <div class="detail-header">
+    <button class="back-btn" id="detail-back">←</button>
+    <div id="detail-avatar" style="width:34px;height:34px;border-radius:10px;overflow:hidden;flex-shrink:0;display:none;"></div>
+    <div>
+      <div id="detail-name" style="font-weight:700;font-size:15px;">—</div>
+      <div class="detail-meta" id="detail-symbol">—</div>
+    </div>
+    <button class="fav-star" id="detail-fav" style="font-size:22px;">☆</button>
+    <button class="bell-btn" id="detail-bell" title="Narx bildirishnomasi">🔔</button>
+  </div>
+  <div class="detail-body">
+    <div class="detail-price-big num" id="detail-price">0.0000</div>
+    <div class="detail-meta" id="detail-supply">—</div>
+    <canvas id="priceChart" height="140"></canvas>
+    <div class="detail-actions">
+      <button class="primary" id="detail-buy">Sotib olish</button>
+      <button class="ghost" id="detail-sell" style="margin-top:0;">Sotish</button>
+    </div>
+    <div class="card" id="detail-boost-card" style="display:none;margin-top:14px;">
+      <div style="font-weight:700;margin-bottom:4px;">🚀 Tokenni kuchaytirish</div>
+      <div class="hint" style="margin:0 0 10px;">O'z Nex Trade balansingizdan mablag' kiriting - bu summa qaytarilmaydi, lekin tokeningizning narxini butunlay (doimiy) oshiradi.</div>
+      <div class="field">
+        <input id="boost-amount" type="number" placeholder="Miqdor (Nex Trade)" min="0.0001" step="0.0001" />
+      </div>
+      <button class="primary" id="boost-btn">Kiritish va narxni oshirish</button>
+    </div>
+    <div class="card" id="detail-pro-card" style="display:none;margin-top:14px;">
+      <div style="font-weight:700;margin-bottom:4px;">✅ PRO nishon</div>
+      <div class="hint" id="detail-pro-hint" style="margin:0 0 10px;">Tokeningizni "PRO" (tasdiqlangan) deb belgilang - bozorda va reytingda alohida ajralib turadi.</div>
+      <button class="primary" id="pro-upgrade-btn">PRO holatiga o'tkazish</button>
+    </div>
+    <div class="section-title">Savdo tarixi</div>
+    <div id="history-list"></div>
+  </div>
+</div>
+
+<div class="detail-overlay" id="nextrade-overlay">
+  <div class="detail-header">
+    <button class="back-btn" id="nextrade-back">←</button>
+    <div>
+      <div style="font-weight:700;font-size:15px;">Nex Trade</div>
+      <div class="detail-meta">$NEXT · Asosiy valyuta</div>
+    </div>
+  </div>
+  <div class="detail-body">
+    <div class="detail-price-big num" id="nextrade-detail-price">0.9957</div>
+    <div class="detail-meta">so'mda, jonli narx</div>
+    <canvas id="nextradeChart" height="140"></canvas>
+  </div>
+</div>
+
+<script>
+  // ====== SOZLAMALAR ======
+  // Agar ilova shu serverning o'zidan ochilgan bo'lsa (Render) - nisbiy yo'l,
+  // aks holda (masalan GitHub Pages'dan) - to'liq manzil.
+  const API_BASE = (location.hostname.endsWith("onrender.com") || location.hostname === "localhost")
+    ? "/api"
+    : "https://nextrade-app1.onrender.com/api";
+  const BOT_USERNAME = "NexTradexbot"; // @siz - referal havolasi uchun
+
+  const tg = window.Telegram?.WebApp;
+  tg?.ready();
+  tg?.expand();
+
+  // XAVFSIZLIK: foydalanuvchi kiritgan har qanday matn (token nomi, izoh va h.k.)
+  // HTML ichiga qo'yilishidan oldin shu funksiyadan o'tadi. Aks holda token
+  // nomiga <img src=x onerror=...> yozib, hamma foydalanuvchida kod ishlatish mumkin edi.
+  function esc(v){
+    return String(v ?? "")
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+
+  // Telegram imzolagan ma'lumot - server foydalanuvchini shu orqali aniqlaydi
+  const TG_INIT_DATA = tg?.initData || "";
+
+  let currentUser = null;
+  let selectedTokenId = null;
+  let tradeSide = "buy";
+  let detailRefreshInterval = null;
+  let favoriteIds = new Set();
+  let alertedTokenIds = new Set();
+
+  function toast(msg){
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"), 2200);
+  }
+
+  function fmt(n){
+    return Number(n).toLocaleString("uz-UZ", { maximumFractionDigits: 4 });
+  }
+
+  // ====== MAVZU (DARK/LIGHT) ======
+  function applyTheme(theme){
+    document.documentElement.setAttribute("data-theme", theme);
+    document.getElementById("theme-toggle").textContent = theme === "light" ? "☀️" : "🌙";
+    localStorage.setItem("nextrade-theme", theme);
+  }
+  applyTheme(localStorage.getItem("nextrade-theme") || "dark");
+  document.getElementById("theme-toggle").addEventListener("click", ()=>{
+    const current = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+    applyTheme(current);
+  });
+
+  // Tab almashtirish
+  document.querySelectorAll(".tab-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+      document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("screen-"+btn.dataset.tab).classList.add("active");
+      if(btn.dataset.tab === "portfolio") loadPortfolio();
+      if(btn.dataset.tab === "profile") loadProfile();
+      if(btn.dataset.tab === "admin"){ loadAdminFrozen(); loadAdminWithdrawStatus(); }
+    });
+  });
+
+  // Faqat admin (ADMIN_TELEGRAM_ID) uchun "Admin" bo'limini ko'rsatadi.
+  // Backend /api/admin/frozen so'rovi 403 qaytarsa, tab yashirin qoladi.
+  let isAdmin = false;
+  async function checkAdminAccess(){
+    try{
+      await api(`/admin/frozen?admin_telegram_id=${currentUser.telegram_id}`);
+      isAdmin = true;
+      document.getElementById("admin-tab-btn").style.display = "";
+    }catch(e){
+      isAdmin = false;
+    }
+  }
+
+  function fmtFrozen(n){ return Number(n).toLocaleString("uz-UZ", { maximumFractionDigits: 4 }); }
+
+  async function loadAdminFrozen(){
+    if(!isAdmin) return;
+    try{
+      const data = await api(`/admin/frozen?admin_telegram_id=${currentUser.telegram_id}`);
+      document.getElementById("admin-frozen-total").textContent = `${fmtFrozen(data.total)} Nex Trade`;
+
+      const list = document.getElementById("admin-frozen-list");
+      if(!data.balances.length){
+        list.innerHTML = `<div class="empty">
+          <div class="empty-icon">❄️</div>
+          <div class="empty-title">Hozircha muzlatilgan mablag' yo'q</div>
+        </div>`;
+        return;
+      }
+      list.innerHTML = data.balances.map(b => `
+        <div class="market-row">
+          <div>
+            <div style="font-weight:600;">${esc(b.name)} <span style="color:var(--muted);">$${esc(b.symbol)}</span></div>
+            <div class="hint" style="margin-top:2px;">Token ID: ${b.token_id}</div>
+          </div>
+          <div class="num" style="font-weight:700;">${fmtFrozen(b.amount)}</div>
+        </div>`).join("");
+    }catch(e){ toast(friendlyError(e)); }
+  }
+
+  function fmtDate(d){
+    return new Date(d).toLocaleString("uz-UZ", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" });
+  }
+
+  async function loadAdminWithdrawStatus(){
+    if(!isAdmin) return;
+    const statusEl = document.getElementById("admin-withdraw-status");
+    const btn = document.getElementById("admin-withdraw-all-btn");
+    try{
+      const status = await api(`/admin/frozen/withdraw-status?admin_telegram_id=${currentUser.telegram_id}`);
+      if(status.canWithdraw){
+        statusEl.textContent = status.lastWithdrawnAt
+          ? `✅ Yechib olishga ruxsat bor (oxirgi marta: ${fmtDate(status.lastWithdrawnAt)})`
+          : "✅ Yechib olishga ruxsat bor";
+        btn.disabled = false;
+      }else{
+        statusEl.textContent = `⏳ Keyingi safar ${fmtDate(status.nextWithdrawAt)} da yechib olishingiz mumkin (haftada 1 marta)`;
+        btn.disabled = true;
+      }
+    }catch(e){ statusEl.textContent = friendlyError(e); }
+  }
+
+  document.getElementById("admin-withdraw-all-btn").addEventListener("click", async ()=>{
+    const btn = document.getElementById("admin-withdraw-all-btn");
+    const restore = setLoading(btn, "Yechilmoqda...");
+    try{
+      const result = await api("/admin/frozen/withdraw-all", {
+        method: "POST",
+        body: JSON.stringify({ admin_telegram_id: currentUser.telegram_id })
+      });
+      toast(`✅ ${fmtFrozen(result.withdrawnTotal)} Nex Trade yechib olindi!`);
+      const refreshed = await api("/user/init", {
+        method: "POST",
+        body: JSON.stringify({ telegram_id: currentUser.telegram_id, username: currentUser.username })
+      });
+      currentUser.nex_trade_balance = refreshed.nex_trade_balance;
+      setBalance(currentUser.nex_trade_balance);
+      await loadAdminFrozen();
+      await loadAdminWithdrawStatus();
+    }catch(e){ toast(friendlyError(e)); }
+    finally{ restore(); }
+  });
+
+  // Foydalanuvchiga tushunarli xato xabarlari - texnik/tarmoq xatolarini
+  // o'qilishi qiyin bo'lgan xom matn o'rniga oddiy uzbekcha jumlaga aylantiradi.
+  function friendlyError(err){
+    if(!navigator.onLine) return "Internet aloqasi yo'q. Ulanishni tekshiring";
+    if(err instanceof TypeError) return "Serverga ulanib bo'lmadi. Birozdan so'ng qayta urinib ko'ring";
+    if(err && err.message) return err.message;
+    return "Kutilmagan xatolik yuz berdi";
+  }
+
+  async function api(path, opts={}){
+    let res;
+    try{
+      res = await fetch(API_BASE + path, {
+        ...opts,
+        headers: { "Content-Type": "application/json", "X-Telegram-Init-Data": TG_INIT_DATA, ...(opts.headers || {}) }
+      });
+    }catch(networkErr){
+      throw new Error(friendlyError(networkErr));
+    }
+    let data;
+    try{
+      data = await res.json();
+    }catch(parseErr){
+      throw new Error("Server javobi noto'g'ri formatda. Birozdan so'ng qayta urinib ko'ring");
+    }
+    if(!res.ok) throw new Error(data.error || "Xatolik yuz berdi");
+    return data;
+  }
+
+  // Tugmani "yuklanmoqda" holatiga o'tkazadi va asl matnini qaytarish uchun funksiya beradi
+  function setLoading(btn, loadingText){
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.classList.add("loading");
+    btn.innerHTML = `<span class="spinner"></span>${loadingText}`;
+    return () => {
+      btn.disabled = false;
+      btn.classList.remove("loading");
+      btn.innerHTML = original;
+    };
+  }
+
+  async function initUser(){
+    if(!TG_INIT_DATA && !["localhost","127.0.0.1"].includes(location.hostname)){
+      throw new Error("Ilovani Telegram ichida, bot orqali oching");
+    }
+    // Foydalanuvchi va referal (start_param) endi serverda, imzolangan
+    // initData'dan aniqlanadi. telegram_id faqat lokal sinov (ALLOW_DEV_AUTH) uchun.
+    currentUser = await api("/user/init", {
+      method:"POST",
+      body: JSON.stringify({ telegram_id: tg?.initDataUnsafe?.user?.id || 1 })
+    });
+    setBalance(currentUser.nex_trade_balance);
+
+    if(currentUser.is_new){
+      document.getElementById("welcome-popup-amount-num").textContent = fmt(currentUser.nex_trade_balance);
+      document.getElementById("welcome-popup-backdrop").classList.add("show");
+      tg?.HapticFeedback?.notificationOccurred?.("success");
+    }
+
+    try{
+      const ids = await api(`/user/${currentUser.id}/favorites/ids`);
+      favoriteIds = new Set(ids);
+    }catch(e){ /* jim */ }
+  }
+
+  function tokenBadgeLetters(symbol){
+    return esc(String(symbol || "").slice(0,3).toUpperCase());
+  }
+
+  function tokenBadgeHtml(t){
+    if(t.image_url){
+      const letters = tokenBadgeLetters(t.symbol);
+      return `<div class="token-badge" style="padding:0;overflow:hidden;" data-fallback="${letters}"><img src="${esc(t.image_url)}" alt="${esc(t.symbol)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" onerror="this.style.display='none';this.parentElement.textContent=this.parentElement.dataset.fallback;" /></div>`;
+    }
+    return `<div class="token-badge">${tokenBadgeLetters(t.symbol)}</div>`;
+  }
+
+  function renderMarket(tokens){
+    const list = document.getElementById("market-list");
+    if(!tokens.length){
+      list.innerHTML = `<div class="empty">
+        <div class="empty-icon">🪙</div>
+        <div class="empty-title">Hali token yo'q</div>
+        <div class="empty-sub">Birinchi bo'lib o'zingiznikini yarating!</div>
+      </div>`;
+      return;
+    }
+    list.innerHTML = tokens.map(t=> tokenRowHtml(t)).join("");
+    list.querySelectorAll(".token-row").forEach((row,i)=>{
+      row.classList.add("stagger-in");
+      row.style.animationDelay = `${Math.min(i,10) * 35}ms`;
+    });
+
+    list.querySelectorAll(".token-row").forEach(row=>{
+      row.addEventListener("click", (e)=>{
+        if(e.target.closest(".fav-star")) return;
+        openTokenDetail(row.dataset);
+      });
+    });
+    bindFavStars(list);
+  }
+
+  function tokenRowHtml(t){
+    const fillPct = Math.min(100, (Number(t.circulating_supply)/Number(t.max_supply))*100);
+    const isFav = favoriteIds.has(t.id);
+    const proTag = t.is_pro ? `<span class="pro-tag">✅ PRO</span>` : "";
+    return `
+      <div class="token-row" data-id="${t.id}" data-name="${esc(t.name)}" data-symbol="${esc(t.symbol)}" data-price="${t.current_price}">
+        <button class="fav-star ${isFav ? "active" : ""}" data-fav-id="${t.id}">${isFav ? "★" : "☆"}</button>
+        ${tokenBadgeHtml(t)}
+        <div class="token-info">
+          <div class="token-name">${esc(t.name)} ${proTag}</div>
+          <div class="token-sub">$${esc(t.symbol)} · ${fmt(t.circulating_supply)}/${fmt(t.max_supply)}</div>
+        </div>
+        <div class="token-price">
+          <div class="p num">${Number(t.current_price).toFixed(4)}</div>
+          <div class="fill"><i style="width:${fillPct}%"></i></div>
+        </div>
+      </div>`;
+  }
+
+  function bindFavStars(container){
+    container.querySelectorAll(".fav-star").forEach(star=>{
+      star.addEventListener("click", async (e)=>{
+        e.stopPropagation();
+        const tokenId = Number(star.dataset.favId);
+        try{
+          const result = await api("/favorites/toggle", {
+            method:"POST",
+            body: JSON.stringify({ user_id: currentUser.id, token_id: tokenId })
+          });
+          if(result.favorited) favoriteIds.add(tokenId); else favoriteIds.delete(tokenId);
+          document.querySelectorAll(`.fav-star[data-fav-id="${tokenId}"]`).forEach(s=>{
+            s.classList.toggle("active", result.favorited);
+            s.textContent = result.favorited ? "★" : "☆";
+          });
+          loadFavorites();
+        }catch(e){ toast(e.message); }
+      });
+    });
+  }
+
+  function renderFavorites(){
+    const titleEl = document.getElementById("favorites-title");
+    const wrap = document.getElementById("favorites-list");
+    if(!favoriteIds.size){
+      titleEl.style.display = "none";
+      wrap.style.display = "none";
+      return;
+    }
+    titleEl.style.display = "block";
+    wrap.style.display = "flex";
+  }
+
+  async function loadFavorites(){
+    if(!favoriteIds.size){ renderFavorites(); return; }
+    try{
+      const tokens = await api(`/user/${currentUser.id}/favorites`);
+      const wrap = document.getElementById("favorites-list");
+      wrap.innerHTML = tokens.map((t,i)=>`
+        <div class="lb-card" data-id="${t.id}" data-name="${esc(t.name)}" data-symbol="${esc(t.symbol)}" data-price="${t.current_price}">
+          <div class="lb-badge">${tokenBadgeLetters(t.symbol)}</div>
+          <div class="lb-name">${esc(t.name)}</div>
+          <div class="lb-price num">${Number(t.current_price).toFixed(4)}</div>
+        </div>
+      `).join("");
+      wrap.querySelectorAll(".lb-card").forEach(card=>{
+        card.addEventListener("click", ()=> openTokenDetail(card.dataset));
+      });
+      renderFavorites();
+    }catch(e){ /* jim */ }
+  }
+
+  async function loadFeaturedTokens(){
+    try{
+      const tokens = await api("/tokens/featured");
+      const wrap = document.getElementById("featured-list");
+      const title = document.getElementById("featured-title");
+      if(!tokens.length){ title.style.display = "none"; wrap.innerHTML = ""; return; }
+      title.style.display = "block";
+      wrap.innerHTML = tokens.map(t=>`
+        <div class="featured-card" data-id="${t.id}" data-name="${esc(t.name)}" data-symbol="${esc(t.symbol)}" data-price="${t.current_price}">
+          <div class="featured-badge">${tokenBadgeLetters(t.symbol)}</div>
+          <div class="featured-name">${esc(t.name)}</div>
+          <div class="featured-price num">${fmt(t.current_price)}</div>
+        </div>`).join("");
+      wrap.querySelectorAll(".featured-card").forEach(card=>{
+        card.addEventListener("click", ()=> openTokenDetail(card.dataset));
+      });
+    }catch(e){ /* jim */ }
+  }
+
+  async function loadMarket(query){
+    try{
+      const path = query && query.trim() ? `/tokens?q=${encodeURIComponent(query.trim())}` : "/tokens";
+      const tokens = await api(path);
+      renderMarket(tokens);
+
+      // Izlash paytida reyting va sarlavhalarni yashiramiz - faqat natija ko'rsatiladi
+      const isSearching = Boolean(query && query.trim());
+      document.getElementById("leaderboard").style.display = isSearching ? "none" : "flex";
+      document.getElementById("leaderboard-title").style.display = isSearching ? "none" : "block";
+      document.getElementById("favorites-title").style.display = (isSearching || !favoriteIds.size) ? "none" : "block";
+      document.getElementById("favorites-list").style.display = (isSearching || !favoriteIds.size) ? "none" : "flex";
+      document.getElementById("market-list-title").textContent = isSearching ? "Qidiruv natijalari" : "Barcha tokenlar";
+      document.getElementById("featured-title").style.display = isSearching ? "none" : "";
+      document.getElementById("featured-list").style.display = isSearching ? "none" : "flex";
+
+      if(isSearching) saveSearchHistory(query.trim());
+      else loadFeaturedTokens();
+    }catch(e){ toast(friendlyError(e)); }
+  }
+
+  // ====== QIDIRUV TARIXI ======
+  function getSearchHistory(){
+    try{ return JSON.parse(localStorage.getItem("nextrade-search-history") || "[]"); }
+    catch(e){ return []; }
+  }
+  function saveSearchHistory(term){
+    let history = getSearchHistory().filter(t=> t.toLowerCase() !== term.toLowerCase());
+    history.unshift(term);
+    history = history.slice(0, 6);
+    localStorage.setItem("nextrade-search-history", JSON.stringify(history));
+  }
+  function renderSearchHistory(){
+    const wrap = document.getElementById("search-history");
+    const history = getSearchHistory();
+    if(!history.length){ wrap.classList.add("hidden"); wrap.innerHTML = ""; return; }
+    wrap.classList.remove("hidden");
+    wrap.innerHTML = history.map(term=> `<button class="search-chip" data-term="${esc(term)}">🕘 ${esc(term)}</button>`).join("");
+    wrap.querySelectorAll(".search-chip").forEach(chip=>{
+      chip.addEventListener("click", ()=>{
+        const input = document.getElementById("search-input");
+        input.value = chip.dataset.term;
+        wrap.classList.add("hidden");
+        loadMarket(chip.dataset.term);
+      });
+    });
+  }
+  document.getElementById("search-input").addEventListener("focus", ()=>{
+    if(!document.getElementById("search-input").value.trim()) renderSearchHistory();
+  });
+  document.getElementById("search-input").addEventListener("blur", ()=>{
+    setTimeout(()=> document.getElementById("search-history").classList.add("hidden"), 150);
+  });
+
+  let searchTimeout;
+  document.getElementById("search-input").addEventListener("input", (e)=>{
+    document.getElementById("search-history").classList.add("hidden");
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(()=> loadMarket(e.target.value), 350);
+  });
+
+  async function loadProfile(){
+    document.getElementById("profile-username").textContent = "@" + (currentUser.username || "foydalanuvchi");
+    document.getElementById("profile-avatar").textContent = (currentUser.username || "?").charAt(0).toUpperCase();
+    document.getElementById("stat-balance").textContent = fmt(currentUser.nex_trade_balance);
+
+    const tgId = tg?.initDataUnsafe?.user?.id || currentUser.telegram_id;
+    const refLink = `https://t.me/${BOT_USERNAME}?start=ref_${tgId}`;
+    const linkEl = document.getElementById("referral-link");
+    linkEl.textContent = refLink;
+    linkEl.onclick = ()=>{
+      navigator.clipboard?.writeText(refLink);
+      toast("Havola nusxalandi!");
+    };
+
+    const bonusBtn = document.getElementById("daily-bonus-btn");
+    bonusBtn.onclick = async ()=>{
+      const restore = setLoading(bonusBtn, "");
+      try{
+        const res = await api(`/user/${currentUser.id}/daily-bonus`, { method: "POST" });
+        currentUser.nex_trade_balance = res.newBalance;
+        document.getElementById("stat-balance").textContent = fmt(res.newBalance);
+        document.getElementById("daily-bonus-hint").textContent = `+${res.bonus} Nex Trade olindi! Ertaga qayta keling.`;
+        toast(`🎁 +${res.bonus} Nex Trade qo'shildi!`);
+        restore();
+        bonusBtn.disabled = true;
+      }catch(e){
+        document.getElementById("daily-bonus-hint").textContent = friendlyError(e);
+        restore();
+        toast(friendlyError(e));
+      }
+    };
+
+    api(`/user/${currentUser.id}/wallet`).then(w=>{
+      document.getElementById("wallet-code-preview").textContent = w.wallet_code;
+    }).catch(()=>{});
+
+    loadBonusPreview();
+
+    try{
+      const [myTokens, referrals] = await Promise.all([
+        api(`/user/${currentUser.id}/created-tokens`),
+        api(`/user/${currentUser.id}/referrals`)
+      ]);
+      document.getElementById("stat-tokens").textContent = myTokens.length;
+      document.getElementById("stat-referrals").textContent = referrals.count;
+
+      const list = document.getElementById("my-tokens-list");
+      if(!myTokens.length){
+        list.innerHTML = `<div class="empty">
+          <div class="empty-icon">🛠️</div>
+          <div class="empty-title">Hali token yaratmagansiz</div>
+          <div class="empty-sub">"Yaratish" bo'limidan boshlang!</div>
+        </div>`;
+      } else {
+        list.innerHTML = myTokens.map(t=> tokenRowHtml(t)).join("");
+        list.querySelectorAll(".token-row").forEach(row=>{
+          row.addEventListener("click", (e)=>{
+            if(e.target.closest(".fav-star")) return;
+            openTokenDetail(row.dataset);
+          });
+        });
+        bindFavStars(list);
+      }
+    }catch(e){ toast(friendlyError(e)); }
+  }
+
+  function renderLeaderboard(tokens){
+    const wrap = document.getElementById("leaderboard");
+    if(!tokens.length){
+      wrap.innerHTML = `<div class="hint">Hali reyting shakllanmagan</div>`;
+      return;
+    }
+    wrap.innerHTML = tokens.map((t,i)=>`
+      <div class="lb-card" data-id="${t.id}" data-name="${esc(t.name)}" data-symbol="${esc(t.symbol)}" data-price="${t.current_price}">
+        <div class="lb-rank">#${i+1}</div>
+        <div class="lb-badge">${tokenBadgeLetters(t.symbol)}</div>
+        <div class="lb-name">${esc(t.name)}</div>
+        <div class="lb-price num">${Number(t.current_price).toFixed(4)}</div>
+      </div>
+    `).join("");
+    wrap.querySelectorAll(".lb-card").forEach(card=>{
+      card.addEventListener("click", ()=> openTokenDetail(card.dataset));
+    });
+  }
+
+  async function loadLeaderboard(){
+    try{
+      const tokens = await api("/leaderboard");
+      renderLeaderboard(tokens);
+    }catch(e){ /* jim */ }
+  }
+
+  function pnlBadge(pct){
+    const cls = pct > 0.01 ? "pos" : pct < -0.01 ? "neg" : "flat";
+    const sign = pct > 0 ? "+" : "";
+    return `<div class="pnl ${cls}">${sign}${pct.toFixed(1)}%</div>`;
+  }
+
+  async function loadPortfolio(){
+    const list = document.getElementById("portfolio-list");
+    const summary = document.getElementById("portfolio-summary");
+
+    // Balans tarixi grafigi - portfolio yuklanishidan mustaqil, xato bo'lsa
+    // ham qolgan portfolio ma'lumotlari ko'rsatilishiga xalaqit bermasin.
+    api(`/user/${currentUser.id}/balance-history`).then(history=>{
+      if(!history || history.length < 2){
+        document.getElementById("balanceHistoryChart").style.display = "none";
+        document.getElementById("balance-history-empty").style.display = "block";
+        return;
+      }
+      document.getElementById("balanceHistoryChart").style.display = "block";
+      document.getElementById("balance-history-empty").style.display = "none";
+      drawPriceChart(history, Number(currentUser.nex_trade_balance ?? 0), "balanceHistoryChart", null);
+    }).catch(()=>{
+      document.getElementById("balanceHistoryChart").style.display = "none";
+      document.getElementById("balance-history-empty").style.display = "block";
+    });
+
+    try{
+      const holdings = await api(`/user/${currentUser.id}/holdings`);
+      if(!holdings.length){
+        summary.style.display = "none";
+        list.innerHTML = `<div class="empty">
+          <div class="empty-icon">📦</div>
+          <div class="empty-title">Portfelingiz bo'sh</div>
+          <div class="empty-sub">Bozordan token sotib oling.</div>
+        </div>`;
+        return;
+      }
+
+      let totalCost = 0, totalValue = 0;
+
+      list.innerHTML = holdings.map(h=>{
+        const amount = Number(h.amount);
+        const avgCost = Number(h.avg_cost);
+        const currentPrice = Number(h.current_price);
+        const cost = avgCost * amount;
+        const value = currentPrice * amount;
+        totalCost += cost;
+        totalValue += value;
+        const pct = cost > 0 ? ((value - cost) / cost) * 100 : 0;
+
+        return `
+        <div class="token-row" data-id="${h.token_id}" data-name="${esc(h.name)}" data-symbol="${esc(h.symbol)}" data-price="${h.current_price}">
+          ${tokenBadgeHtml({symbol: h.symbol, image_url: h.image_url})}
+          <div class="token-info">
+            <div class="token-name">${esc(h.name)}</div>
+            <div class="token-sub">${fmt(h.amount)} ta token</div>
+          </div>
+          <div class="token-price">
+            <div class="p num">${currentPrice.toFixed(4)}</div>
+            ${cost > 0 ? pnlBadge(pct) : ""}
+          </div>
+        </div>
+      `;
+      }).join("");
+
+      list.querySelectorAll(".token-row").forEach(row=>{
+        row.addEventListener("click", ()=> openTokenDetail(row.dataset));
+      });
+
+      if(totalCost > 0){
+        const totalPct = ((totalValue - totalCost) / totalCost) * 100;
+        const diff = totalValue - totalCost;
+        summary.style.display = "flex";
+        const valueEl = document.getElementById("portfolio-pnl-value");
+        const pctEl = document.getElementById("portfolio-pnl-pct");
+        valueEl.textContent = `${diff >= 0 ? "+" : ""}${fmt(diff)} UZS`;
+        valueEl.style.color = diff >= 0 ? "var(--up)" : "var(--down)";
+        pctEl.textContent = `${totalPct >= 0 ? "+" : ""}${totalPct.toFixed(1)}%`;
+        pctEl.className = "pnl " + (totalPct > 0.01 ? "pos" : totalPct < -0.01 ? "neg" : "flat");
+      } else {
+        summary.style.display = "none";
+      }
+    }catch(e){ toast(friendlyError(e)); }
+  }
+
+  // ====== TOKEN TAFSILOT EKRANI (grafik + tarix) ======
+  async function refreshTokenDetail(tokenId){
+    try{
+      const token = await api(`/tokens/${tokenId}`);
+      document.getElementById("detail-price").textContent = Number(token.current_price).toFixed(4);
+      document.getElementById("detail-supply").textContent =
+        `${fmt(token.circulating_supply)} / ${fmt(token.max_supply)} muomalada`;
+
+      const avatarEl = document.getElementById("detail-avatar");
+      if(token.image_url){
+        avatarEl.style.display = "block";
+        avatarEl.innerHTML = `<img src="${esc(token.image_url)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.display='none';" />`;
+      } else {
+        avatarEl.style.display = "none";
+        avatarEl.innerHTML = "";
+      }
+
+      const boostCard = document.getElementById("detail-boost-card");
+      boostCard.style.display = (currentUser && Number(token.owner_id) === currentUser.id) ? "block" : "none";
+
+      const proCard = document.getElementById("detail-pro-card");
+      const isOwner = currentUser && Number(token.owner_id) === currentUser.id;
+      if(isOwner && !token.is_pro){
+        proCard.style.display = "block";
+        const cost = await getProBadgeCost();
+        document.getElementById("detail-pro-hint").textContent =
+          `Tokeningizni "PRO" (tasdiqlangan) deb belgilang - bozorda va reytingda alohida ajralib turadi. Narxi: ${fmt(cost)} Nex Trade (balansingizdan yechiladi).`;
+      } else {
+        proCard.style.display = "none";
+      }
+
+      const [chart, history] = await Promise.all([
+        api(`/tokens/${tokenId}/chart`),
+        api(`/tokens/${tokenId}/history`)
+      ]);
+      drawPriceChart(chart, Number(token.base_price));
+      renderHistoryList(history);
+    }catch(e){ /* jim - fon yangilanishida toast chiqarmaymiz */ }
+  }
+
+  async function openTokenDetail(data){
+    selectedTokenId = Number(data.id);
+    document.getElementById("detail-name").textContent = data.name;
+    document.getElementById("detail-symbol").textContent = "$" + data.symbol;
+    document.getElementById("detail-price").textContent = Number(data.price).toFixed(4);
+    document.getElementById("detail-overlay").classList.add("active");
+
+    const favBtn = document.getElementById("detail-fav");
+    const isFav = favoriteIds.has(selectedTokenId);
+    favBtn.textContent = isFav ? "★" : "☆";
+    favBtn.classList.toggle("active", isFav);
+
+    refreshAlertState(selectedTokenId);
+
+    await refreshTokenDetail(data.id);
+
+    // Bu token ochiq turgan paytda narx har 10 soniyada avtomatik yangilanadi
+    if(detailRefreshInterval) clearInterval(detailRefreshInterval);
+    detailRefreshInterval = setInterval(()=> refreshTokenDetail(selectedTokenId), 10000);
+  }
+
+  document.getElementById("boost-btn").addEventListener("click", async ()=>{
+    const amount = Number(document.getElementById("boost-amount").value);
+    if(!amount || amount <= 0){ toast("Miqdorni to'g'ri kiriting"); return; }
+    const btn = document.getElementById("boost-btn");
+    const restore = setLoading(btn, "Kiritilmoqda...");
+    try{
+      await api(`/tokens/${selectedTokenId}/boost`, {
+        method:"POST",
+        body: JSON.stringify({ user_id: currentUser.id, amount })
+      });
+      toast("Narx oshirildi!");
+      document.getElementById("boost-amount").value = "";
+      currentUser = await api("/user/init", { method:"POST", body: JSON.stringify({ telegram_id: currentUser.telegram_id, username: currentUser.username }) });
+      setBalance(currentUser.nex_trade_balance);
+      await refreshTokenDetail(selectedTokenId);
+    }catch(e){ toast(friendlyError(e)); }
+    finally{ restore(); }
+  });
+
+  let cachedProBadgeCost = null;
+  async function getProBadgeCost(){
+    if(cachedProBadgeCost !== null) return cachedProBadgeCost;
+    try{
+      const res = await api("/pro-badge-cost");
+      cachedProBadgeCost = Number(res.cost);
+    }catch{ cachedProBadgeCost = 500; }
+    return cachedProBadgeCost;
+  }
+
+  document.getElementById("pro-upgrade-btn").addEventListener("click", async ()=>{
+    const btn = document.getElementById("pro-upgrade-btn");
+    const restore = setLoading(btn, "O'tkazilmoqda...");
+    try{
+      await api(`/tokens/${selectedTokenId}/pro-upgrade`, {
+        method:"POST",
+        body: JSON.stringify({ user_id: currentUser.id })
+      });
+      toast("✅ Token PRO holatiga o'tkazildi!");
+      currentUser = await api("/user/init", { method:"POST", body: JSON.stringify({ telegram_id: currentUser.telegram_id, username: currentUser.username }) });
+      setBalance(currentUser.nex_trade_balance);
+      await refreshTokenDetail(selectedTokenId);
+      await loadMarket();
+    }catch(e){ toast(friendlyError(e)); }
+    finally{ restore(); }
+  });
+
+  // ====== QULFLANGAN BO'LIMLAR (litsenziya kutilmoqda) ======
+  document.getElementById("pro-locked-btn").addEventListener("click", ()=>{
+    document.getElementById("locked-title").textContent = "PRO token";
+    document.getElementById("locked-heading").textContent = "🔒 Litsenziya olingandan keyin ochiladi";
+    document.getElementById("locked-desc").textContent =
+      "PRO token real pul kiritish orqali yaratiladi, shuning uchun bu funksiya ham yuqoridagi litsenziya bilan bog'liq. Litsenziya olingach, bu bo'lim avtomatik ishga tushadi.";
+    document.getElementById("locked-overlay").classList.add("active");
+  });
+  document.getElementById("welcome-popup-btn").addEventListener("click", ()=>{
+    document.getElementById("welcome-popup-backdrop").classList.remove("show");
+  });
+
+  document.getElementById("locked-back").addEventListener("click", ()=>{
+    document.getElementById("locked-overlay").classList.remove("active");
+  });
+
+  // ====== HAMYON (WALLET) ======
+  async function loadWalletHistory(){
+    try{
+      const history = await api(`/user/${currentUser.id}/wallet/history`);
+      const list = document.getElementById("wallet-history-list");
+      if(!history.length){
+        list.innerHTML = `<div class="empty">
+          <div class="empty-icon">👛</div>
+          <div class="empty-title">Hali o'tkazma yo'q</div>
+        </div>`;
+        return;
+      }
+      list.innerHTML = history.map(h=>{
+        const isOut = h.direction === "out";
+        return `
+        <div class="market-row">
+          <div>
+            <div style="font-weight:600;">${isOut ? "➖ Jo'natildi" : "➕ Qabul qilindi"}</div>
+            <div class="hint" style="margin-top:2px;">${isOut ? "Kimga: " : "Kimdan: "}${esc(h.counterparty_wallet)}${h.note ? " · " + esc(h.note) : ""}</div>
+          </div>
+          <div class="num" style="font-weight:700;color:${isOut ? "var(--down)" : "var(--up)"};">${isOut ? "-" : "+"}${fmt(h.amount)}</div>
+        </div>`;
+      }).join("");
+    }catch(e){ /* jim */ }
+  }
+
+  document.getElementById("wallet-open-btn").addEventListener("click", async ()=>{
+    document.getElementById("wallet-overlay").classList.add("active");
+    try{
+      const w = await api(`/user/${currentUser.id}/wallet`);
+      document.getElementById("wallet-code-big").textContent = w.wallet_code;
+    }catch(e){ toast(friendlyError(e)); }
+    loadWalletHistory();
+  });
+  document.getElementById("wallet-back").addEventListener("click", ()=>{
+    document.getElementById("wallet-overlay").classList.remove("active");
+  });
+
+  // ====== NEX TRADEX TO'LDIRISH / CHIQARISH ======
+  // Real to'lov (karta) YO'Q - bu ichki valyuta, shuning uchun tanlangan
+  // (yoki qo'lda kiritilgan) miqdor to'g'ridan-to'g'ri balansga qo'shiladi/
+  // balansdan chiqariladi. UZS qiymati faqat ma'lumot uchun ko'rsatiladi.
+  let topupInfo = null;
+  async function loadTopupInfo(){
+    if(topupInfo) return topupInfo;
+    try{
+      topupInfo = await api("/nextrade/topup-info");
+      document.getElementById("topup-min-label").textContent = fmt(topupInfo.topupMin);
+      document.getElementById("withdraw-min-label").textContent = fmt(topupInfo.withdrawMin);
+
+      document.getElementById("topup-presets-in").innerHTML = topupInfo.topupPresets.map(p =>
+        `<button class="preset-btn" data-amount="${p}">${fmt(p)}<br><span style="font-weight:500;font-size:11px;color:var(--muted);">Nex</span></button>`
+      ).join("");
+      document.getElementById("topup-presets-out").innerHTML = topupInfo.withdrawPresets.map(p =>
+        `<button class="preset-btn" data-amount="${p}">${fmt(p)}<br><span style="font-weight:500;font-size:11px;color:var(--muted);">Nex</span></button>`
+      ).join("");
+
+      document.querySelectorAll("#topup-presets-in .preset-btn").forEach(b=>{
+        b.addEventListener("click", ()=>{
+          document.querySelectorAll("#topup-presets-in .preset-btn").forEach(x=>x.classList.remove("active"));
+          b.classList.add("active");
+          document.getElementById("topup-amount-in").value = b.dataset.amount;
+          updateTopupUzs("in");
+        });
+      });
+      document.querySelectorAll("#topup-presets-out .preset-btn").forEach(b=>{
+        b.addEventListener("click", ()=>{
+          document.querySelectorAll("#topup-presets-out .preset-btn").forEach(x=>x.classList.remove("active"));
+          b.classList.add("active");
+          document.getElementById("topup-amount-out").value = b.dataset.amount;
+          updateTopupUzs("out");
+        });
+      });
+    }catch(e){ toast(friendlyError(e)); }
+    return topupInfo;
+  }
+
+  function updateTopupUzs(dir){
+    if(!topupInfo) return;
+    const amount = Number(document.getElementById(`topup-amount-${dir}`).value) || 0;
+    const uzs = amount * topupInfo.nexTradePriceUzs;
+    document.getElementById(`topup-uzs-${dir}`).textContent = `≈ ${fmt(uzs)} UZS bo'ladi (joriy narxda)`;
+  }
+  document.getElementById("topup-amount-in").addEventListener("input", ()=>updateTopupUzs("in"));
+  document.getElementById("topup-amount-out").addEventListener("input", ()=>updateTopupUzs("out"));
+
+  document.getElementById("topup-open-btn").addEventListener("click", async ()=>{
+    document.getElementById("topup-overlay").classList.add("active");
+    await loadTopupInfo();
+    updateTopupUzs("in");
+    updateTopupUzs("out");
+  });
+  document.getElementById("topup-back").addEventListener("click", ()=>{
+    document.getElementById("topup-overlay").classList.remove("active");
+  });
+  document.getElementById("topup-tab-in").addEventListener("click", ()=>{
+    document.getElementById("topup-tab-in").classList.add("active");
+    document.getElementById("topup-tab-out").classList.remove("active");
+    document.getElementById("topup-panel-in").style.display = "";
+    document.getElementById("topup-panel-out").style.display = "none";
+  });
+  document.getElementById("topup-tab-out").addEventListener("click", ()=>{
+    document.getElementById("topup-tab-out").classList.add("active");
+    document.getElementById("topup-tab-in").classList.remove("active");
+    document.getElementById("topup-panel-out").style.display = "";
+    document.getElementById("topup-panel-in").style.display = "none";
+  });
+
+  document.getElementById("topup-submit-in").addEventListener("click", async ()=>{
+    const amount = Number(document.getElementById("topup-amount-in").value);
+    if(!topupInfo || !amount || amount < topupInfo.topupMin){
+      toast(`Eng kami ${fmt(topupInfo?.topupMin ?? 2000)} Nex Tradex kiriting`); return;
+    }
+    const btn = document.getElementById("topup-submit-in");
+    const restore = setLoading(btn, "To'ldirilmoqda...");
+    try{
+      const res = await api("/nextrade/topup", {
+        method: "POST",
+        body: JSON.stringify({ user_id: currentUser.id, amount })
+      });
+      currentUser.nex_trade_balance = res.newBalance;
+      setBalance(res.newBalance);
+      toast(`✅ +${fmt(res.amount)} Nex Tradex qo'shildi (≈${fmt(res.uzsValue)} UZS)! Joriy balansda ham shuncha bo'ldi.`);
+      document.getElementById("topup-amount-in").value = "";
+      document.querySelectorAll("#topup-presets-in .preset-btn").forEach(x=>x.classList.remove("active"));
+      updateTopupUzs("in");
+    }catch(e){ toast(friendlyError(e)); }
+    finally{ restore(); }
+  });
+
+  document.getElementById("topup-submit-out").addEventListener("click", async ()=>{
+    const amount = Number(document.getElementById("topup-amount-out").value);
+    if(!topupInfo || !amount || amount < topupInfo.withdrawMin){
+      toast(`Eng kami ${fmt(topupInfo?.withdrawMin ?? 5000)} Nex Tradex kiriting`); return;
+    }
+    const btn = document.getElementById("topup-submit-out");
+    const restore = setLoading(btn, "Chiqarilmoqda...");
+    try{
+      const res = await api("/nextrade/withdraw", {
+        method: "POST",
+        body: JSON.stringify({ user_id: currentUser.id, amount })
+      });
+      currentUser.nex_trade_balance = res.newBalance;
+      setBalance(res.newBalance);
+      toast(`✅ ${fmt(res.amount)} Nex Tradex chiqarildi (≈${fmt(res.uzsValue)} UZS bo'ladi)!`);
+      document.getElementById("topup-amount-out").value = "";
+      document.querySelectorAll("#topup-presets-out .preset-btn").forEach(x=>x.classList.remove("active"));
+      updateTopupUzs("out");
+    }catch(e){ toast(friendlyError(e)); }
+    finally{ restore(); }
+  });
+
+  // ====== BONUSLAR (token yaratuvchisi komissiyasi - haftalik) ======
+  async function loadBonusPreview(){
+    try{
+      const info = await api(`/user/${currentUser.id}/bonus`);
+      document.getElementById("bonus-preview").textContent = `${fmt(info.pending)} Nex Trade kutilmoqda`;
+    }catch(e){ /* jim */ }
+  }
+
+  async function loadBonusOverlay(){
+    try{
+      const info = await api(`/user/${currentUser.id}/bonus`);
+      document.getElementById("bonus-pending").textContent = fmt(info.pending);
+      const btn = document.getElementById("bonus-claim-btn");
+      const statusEl = document.getElementById("bonus-status");
+      if(info.canClaim){
+        statusEl.textContent = "✅ Bonusingizni hozir yechib olishingiz mumkin.";
+        btn.disabled = false;
+      }else if(info.nextClaimAt){
+        statusEl.textContent = `⏳ Keyingi yechib olish ${fmtDate(info.nextClaimAt)} da mumkin bo'ladi (haftada 1 marta).`;
+        btn.disabled = true;
+      }else{
+        statusEl.textContent = "Hozircha kutilayotgan bonus yo'q. Tokeningiz bilan savdo qilinganda shu yerga bonus tushadi.";
+        btn.disabled = true;
+      }
+    }catch(e){ toast(friendlyError(e)); }
+  }
+
+  document.getElementById("bonus-open-btn").addEventListener("click", async ()=>{
+    document.getElementById("bonus-overlay").classList.add("active");
+    await loadBonusOverlay();
+  });
+  document.getElementById("bonus-back").addEventListener("click", ()=>{
+    document.getElementById("bonus-overlay").classList.remove("active");
+  });
+  document.getElementById("bonus-claim-btn").addEventListener("click", async ()=>{
+    const btn = document.getElementById("bonus-claim-btn");
+    const restore = setLoading(btn, "Yechilmoqda...");
+    try{
+      const res = await api(`/user/${currentUser.id}/bonus/claim`, { method: "POST" });
+      currentUser.nex_trade_balance = res.newBalance;
+      setBalance(res.newBalance);
+      toast(`✅ ${fmt(res.claimedAmount)} Nex Trade balansingizga o'tkazildi!`);
+      await loadBonusOverlay();
+      await loadBonusPreview();
+    }catch(e){ toast(friendlyError(e)); }
+    finally{ restore(); }
+  });
+  document.getElementById("wallet-send-btn").addEventListener("click", async ()=>{
+    const toCode = document.getElementById("wallet-to-code").value.trim().toUpperCase();
+    const amount = Number(document.getElementById("wallet-amount").value);
+    const note = document.getElementById("wallet-note").value.trim();
+    if(!toCode){ toast("Hamyon kodini kiriting"); return; }
+    if(!amount || amount <= 0){ toast("Miqdorni to'g'ri kiriting"); return; }
+    const btn = document.getElementById("wallet-send-btn");
+    const restore = setLoading(btn, "Jo'natilmoqda...");
+    try{
+      const res = await api("/wallet/transfer", {
+        method:"POST",
+        body: JSON.stringify({ from_user_id: currentUser.id, to_wallet_code: toCode, amount, note: note || undefined })
+      });
+      currentUser.nex_trade_balance = res.newBalance;
+      setBalance(res.newBalance);
+      document.getElementById("stat-balance").textContent = fmt(res.newBalance);
+      toast(`✅ ${fmt(amount)} Nex Trade jo'natildi!`);
+      document.getElementById("wallet-to-code").value = "";
+      document.getElementById("wallet-amount").value = "";
+      document.getElementById("wallet-note").value = "";
+      loadWalletHistory();
+    }catch(e){ toast(friendlyError(e)); }
+    finally{ restore(); }
+  });
+
+  document.getElementById("detail-fav").addEventListener("click", async ()=>{
+    const btn = document.getElementById("detail-fav");
+    try{
+      const result = await api("/favorites/toggle", {
+        method:"POST",
+        body: JSON.stringify({ user_id: currentUser.id, token_id: selectedTokenId })
+      });
+      if(result.favorited) favoriteIds.add(selectedTokenId); else favoriteIds.delete(selectedTokenId);
+      btn.textContent = result.favorited ? "★" : "☆";
+      btn.classList.toggle("active", result.favorited);
+      loadFavorites();
+    }catch(e){ toast(friendlyError(e)); }
+  });
+
+  // ====== BILDIRISHNOMA (narx uchun obuna) ======
+  async function refreshAlertState(tokenId){
+    const bellBtn = document.getElementById("detail-bell");
+    try{
+      const alerts = await api(`/user/${currentUser.id}/alerts`);
+      const isSubscribed = alerts.some(a => a.token_id === tokenId);
+      bellBtn.classList.toggle("active", isSubscribed);
+      bellBtn.textContent = isSubscribed ? "🔔" : "🔕";
+    }catch(e){ /* jim */ }
+  }
+
+  document.getElementById("detail-bell").addEventListener("click", async ()=>{
+    const bellBtn = document.getElementById("detail-bell");
+    const isSubscribed = bellBtn.classList.contains("active");
+    try{
+      if(isSubscribed){
+        await api("/alerts", {
+          method:"DELETE",
+          body: JSON.stringify({ user_id: currentUser.id, token_id: selectedTokenId })
+        });
+        bellBtn.classList.remove("active");
+        bellBtn.textContent = "🔕";
+        toast("Bildirishnoma o'chirildi");
+      } else {
+        await api("/alerts", {
+          method:"POST",
+          body: JSON.stringify({ user_id: currentUser.id, token_id: selectedTokenId, threshold_pct: 5 })
+        });
+        bellBtn.classList.add("active");
+        bellBtn.textContent = "🔔";
+        toast("Narx 5% o'zgarsa, botdan xabar olasiz");
+      }
+    }catch(e){ toast(friendlyError(e)); }
+  });
+
+  document.getElementById("detail-back").addEventListener("click", ()=>{
+    document.getElementById("detail-overlay").classList.remove("active");
+    if(detailRefreshInterval){ clearInterval(detailRefreshInterval); detailRefreshInterval = null; }
+  });
+
+  document.getElementById("detail-buy").addEventListener("click", ()=>{
+    document.querySelectorAll(".buysell-toggle button").forEach(b=>b.classList.remove("active"));
+    document.querySelector('[data-side="buy"]').classList.add("active");
+    tradeSide = "buy";
+    openTradeModal({
+      id: selectedTokenId,
+      name: document.getElementById("detail-name").textContent,
+      symbol: document.getElementById("detail-symbol").textContent.replace("$",""),
+      price: document.getElementById("detail-price").textContent
+    });
+  });
+
+  document.getElementById("detail-sell").addEventListener("click", ()=>{
+    document.querySelectorAll(".buysell-toggle button").forEach(b=>b.classList.remove("active"));
+    document.querySelector('[data-side="sell"]').classList.add("active");
+    tradeSide = "sell";
+    openTradeModal({
+      id: selectedTokenId,
+      name: document.getElementById("detail-name").textContent,
+      symbol: document.getElementById("detail-symbol").textContent.replace("$",""),
+      price: document.getElementById("detail-price").textContent
+    });
+  });
+
+  function drawPriceChart(history, basePrice, canvasId, priceLabelId){
+    canvasId = canvasId || "priceChart";
+    priceLabelId = priceLabelId || "detail-price";
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight || 140;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0,0,w,h);
+
+    const prices = history.length ? history.map(x=>Number(x.price)) : [basePrice, basePrice];
+    const min = Math.min(...prices), max = Math.max(...prices);
+    const pad = (max - min) * 0.15 || max * 0.1 || 0.0001;
+    const yMin = min - pad, yMax = max + pad;
+
+    const points = prices.map((p,i)=>{
+      const x = prices.length > 1 ? (i/(prices.length-1)) * w : w/2;
+      const y = h - ((p - yMin)/(yMax - yMin)) * h;
+      return [x,y];
+    });
+
+    // Narx boshidan oxirigacha o'sgan bo'lsa yashil, tushgan bo'lsa qizil rangda chiziladi
+    const trendUp = prices[prices.length - 1] >= prices[0];
+    const lineColor = trendUp ? "#00D68F" : "#FF5C72";
+    const fillColorTop = trendUp ? "rgba(0,214,143,.22)" : "rgba(255,92,114,.22)";
+    const fillColorBottom = trendUp ? "rgba(0,214,143,0)" : "rgba(255,92,114,0)";
+
+    // Gradient ostki maydon
+    const grad = ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0, fillColorTop);
+    grad.addColorStop(1, fillColorBottom);
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], h);
+    points.forEach(([x,y])=>ctx.lineTo(x,y));
+    ctx.lineTo(points[points.length-1][0], h);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Chiziq
+    ctx.beginPath();
+    points.forEach(([x,y],i)=> i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y));
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+    ctx.stroke();
+
+    const labelEl = document.getElementById(priceLabelId);
+    if(labelEl) labelEl.style.color = trendUp ? "var(--up)" : "var(--down)";
+  }
+
+  // ====== NEX TRADE (ASOSIY VALYUTA) NARXI ======
+  let nextradeRefreshInterval = null;
+
+  // Balans tepasidagi "1 Nex Trade ≈ X so'm" qatorini yangilab turadi
+  // (overlay yopiq bo'lsa ham, har 10 soniyada).
+  async function refreshNexTradePriceHeader(){
+    try{
+      const data = await api("/nextrade/price");
+      document.getElementById("nextrade-price-val").textContent = Number(data.price).toFixed(4);
+    }catch(e){ /* jim */ }
+  }
+
+  async function refreshNexTradeDetail(){
+    try{
+      const [priceData, chart] = await Promise.all([
+        api("/nextrade/price"),
+        api("/nextrade/chart")
+      ]);
+      document.getElementById("nextrade-detail-price").textContent = Number(priceData.price).toFixed(4);
+      document.getElementById("nextrade-price-val").textContent = Number(priceData.price).toFixed(4);
+      drawPriceChart(chart, Number(priceData.price), "nextradeChart", "nextrade-detail-price");
+    }catch(e){ /* jim */ }
+  }
+
+  async function openNexTradeDetail(){
+    document.getElementById("nextrade-overlay").classList.add("active");
+    await refreshNexTradeDetail();
+    if(nextradeRefreshInterval) clearInterval(nextradeRefreshInterval);
+    nextradeRefreshInterval = setInterval(refreshNexTradeDetail, 10000);
+  }
+
+  document.getElementById("nextrade-price-row").addEventListener("click", openNexTradeDetail);
+  document.getElementById("nextrade-back").addEventListener("click", ()=>{
+    document.getElementById("nextrade-overlay").classList.remove("active");
+    if(nextradeRefreshInterval){ clearInterval(nextradeRefreshInterval); nextradeRefreshInterval = null; }
+  });
+
+  refreshNexTradePriceHeader();
+  setInterval(refreshNexTradePriceHeader, 10000);
+
+  function renderHistoryList(history){
+    const wrap = document.getElementById("history-list");
+    if(!history.length){
+      wrap.innerHTML = `<div class="empty">
+        <div class="empty-icon">📊</div>
+        <div class="empty-title">Hali savdo bo'lmagan</div>
+      </div>`;
+      return;
+    }
+    wrap.innerHTML = history.slice().reverse().map(h=>{
+      const time = new Date(h.created_at).toLocaleString("uz-UZ", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
+      const sideLabel = h.type === "buy" ? "Sotib olindi" : "Sotildi";
+      const sideClass = h.type === "buy" ? "side-buy" : "side-sell";
+      return `
+        <div class="history-row">
+          <div>
+            <span class="${sideClass}">${sideLabel}</span>
+            <div class="h-time">${time}</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="num">${fmt(h.amount)} ta</div>
+            <div class="h-time">${Number(h.price).toFixed(4)} UZS</div>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  function openTradeModal(data){
+    selectedTokenId = data.id;
+    document.getElementById("modal-token-name").textContent = `${data.name} · $${data.symbol}`;
+    document.getElementById("modal-token-price").textContent = `Joriy narx: ${Number(data.price).toFixed(4)} UZS`;
+    document.getElementById("trade-amount").value = "";
+    document.getElementById("trade-preview-box").style.display = "none";
+    document.getElementById("trade-preview-error").style.display = "none";
+    document.getElementById("trade-modal").classList.add("active");
+  }
+
+  let tradeQuoteTimeout;
+  let cachedNexTradePrice = null;
+
+  async function getNexTradeUzsPrice(){
+    if(cachedNexTradePrice !== null) return cachedNexTradePrice;
+    try{
+      const res = await api("/nextrade/price");
+      cachedNexTradePrice = Number(res.price);
+    }catch{
+      cachedNexTradePrice = 1; // agar olib bo'lmasa - taxminiy 1:1
+    }
+    return cachedNexTradePrice;
+  }
+
+  async function updateTradePreview(){
+    const amount = Number(document.getElementById("trade-amount").value);
+    const box = document.getElementById("trade-preview-box");
+    const errBox = document.getElementById("trade-preview-error");
+    if(!amount || amount <= 0){
+      box.style.display = "none";
+      errBox.style.display = "none";
+      return;
+    }
+
+    try{
+      const [quote, nexUzsPrice] = await Promise.all([
+        api(`/tokens/${selectedTokenId}/quote?side=${tradeSide}&amount=${amount}`),
+        getNexTradeUzsPrice()
+      ]);
+      const nexAmount = Number(quote.nexAmount);
+      const uzsAmount = nexAmount * nexUzsPrice;
+      const feeAmount = nexAmount * 0.0025;
+
+      document.getElementById("trade-preview-nex").textContent = `${fmt(nexAmount)} Nex Trade`;
+      document.getElementById("trade-preview-uzs").textContent = `≈ ${fmt(uzsAmount)} so'm`;
+      document.getElementById("trade-preview-fee").textContent = `${fmt(feeAmount)} Nex Trade`;
+      box.style.display = "block";
+      errBox.style.display = "none";
+    }catch(e){
+      // Xatoni endi yashirmaymiz - foydalanuvchiga aynan nima sabab ekanini ko'rsatamiz
+      box.style.display = "none";
+      errBox.textContent = "⚠️ " + friendlyError(e);
+      errBox.style.display = "block";
+    }
+  }
+
+  document.getElementById("trade-amount").addEventListener("input", ()=>{
+    clearTimeout(tradeQuoteTimeout);
+    tradeQuoteTimeout = setTimeout(updateTradePreview, 300);
+  });
+
+  document.getElementById("trade-cancel").addEventListener("click", ()=>{
+    document.getElementById("trade-modal").classList.remove("active");
+  });
+
+  document.querySelectorAll(".buysell-toggle button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".buysell-toggle button").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      tradeSide = btn.dataset.side;
+      updateTradePreview();
+    });
+  });
+
+  document.getElementById("trade-confirm").addEventListener("click", async ()=>{
+    const amount = Number(document.getElementById("trade-amount").value);
+    if(!amount || amount <= 0){ toast("Miqdorni kiriting"); return; }
+    const btn = document.getElementById("trade-confirm");
+    const restore = setLoading(btn, tradeSide === "buy" ? "Sotib olinmoqda..." : "Sotilmoqda...");
+    try{
+      const endpoint = tradeSide === "buy" ? "/trade/buy" : "/trade/sell";
+      const result = await api(endpoint, {
+        method:"POST",
+        body: JSON.stringify({ user_id: currentUser.id, token_id: Number(selectedTokenId), amount })
+      });
+      toast(tradeSide === "buy" ? "Sotib olindi!" : "Sotildi!");
+      document.getElementById("trade-modal").classList.remove("active");
+      await initUser();
+      await loadMarket();
+      await loadLeaderboard();
+      await loadFavorites();
+      if(document.getElementById("detail-overlay").classList.contains("active")){
+        await refreshTokenDetail(selectedTokenId);
+      }
+    }catch(e){ toast(friendlyError(e)); }
+    finally{ restore(); }
+  });
+
+  document.getElementById("create-btn").addEventListener("click", async ()=>{
+    const name = document.getElementById("new-name").value.trim();
+    const symbol = document.getElementById("new-symbol").value.trim();
+    const imageUrl = document.getElementById("new-image").value.trim();
+    const supply = Number(document.getElementById("new-supply").value);
+    if(!name || !symbol || !supply){ toast("Hamma maydonlarni to'ldiring"); return; }
+    const btn = document.getElementById("create-btn");
+    const restore = setLoading(btn, "Yaratilmoqda...");
+    try{
+      const body = { owner_id: currentUser.id, name, symbol, max_supply: supply };
+      if(imageUrl) body.image_url = imageUrl;
+      await api("/tokens", {
+        method:"POST",
+        body: JSON.stringify(body)
+      });
+      toast("Token yaratildi!");
+      document.getElementById("new-name").value = "";
+      document.getElementById("new-symbol").value = "";
+      document.getElementById("new-image").value = "";
+      document.getElementById("new-supply").value = "";
+      document.querySelector('[data-tab="market"]').click();
+      await loadMarket();
+    }catch(e){ toast(friendlyError(e)); }
+    finally{ restore(); }
+  });
+
+  // ====== JONLI TICKER TAPE ======
+  async function refreshTicker(){
+    try{
+      const [tokens, featured] = await Promise.all([
+        api("/tokens"),
+        api("/tokens/featured")
+      ]);
+      const all = [...featured, ...tokens];
+      if(!all.length) return;
+      const items = all.map(t=>{
+        const base = Number(t.base_price) || Number(t.current_price);
+        const pct = base > 0 ? ((Number(t.current_price) - base) / base) * 100 : 0;
+        const isUp = pct >= 0;
+        return `<span class="ticker-item">
+          <span class="sym">$${esc(t.symbol)}</span>
+          <span class="px num">${fmt(t.current_price)}</span>
+          <span class="chg ${isUp ? "up" : "down"}">${isUp ? "▲" : "▼"} ${Math.abs(pct).toFixed(1)}%</span>
+        </span>`;
+      }).join("");
+      // Ikki marta takrorlanadi - shu bilan animatsiya uzluksiz (chok-siz) ko'rinadi
+      document.getElementById("ticker-track").innerHTML = items + items;
+    }catch(e){ /* jim */ }
+  }
+
+  // ====== RAQAM O'ZGARGANDA "YORQIN CHAQNASH" EFFEKTI ======
+  function flashNumber(el, newValue, oldValue){
+    if(!el || oldValue === undefined || oldValue === null) return;
+    const n = Number(newValue), o = Number(oldValue);
+    if(isNaN(n) || isNaN(o) || n === o) return;
+    el.classList.remove("flash-up", "flash-down");
+    void el.offsetWidth; // reflow - animatsiyani qayta ishga tushirish uchun
+    el.classList.add(n > o ? "flash-up" : "flash-down");
+  }
+
+  function setBalance(newValue){
+    const el = document.getElementById("balance");
+    const old = el.dataset.raw;
+    el.textContent = fmt(newValue);
+    flashNumber(el, newValue, old);
+    el.dataset.raw = newValue;
+  }
+
+  (async function start(){
+    try{
+      await initUser();
+      await checkAdminAccess();
+      await loadMarket();
+      await loadLeaderboard();
+      await loadFavorites();
+      await refreshTicker();
+      setInterval(refreshTicker, 15000);
+    }catch(e){
+      toast(friendlyError(e));
+    }
+  })();
+</script>
+</body>
+</html>
