@@ -1,6 +1,7 @@
 import { Bot, InlineKeyboard } from "grammy";
 import dotenv from "dotenv";
-import { getOrCreateUser, getPlatformStats, getUserLeaderboard, claimDailyBonus } from "../services/userService";
+import { getOrCreateUser, getPlatformStats, getUserLeaderboard } from "../services/userService";
+import { claimStreakBonus, getLeague, REFERRAL_REWARD } from "../services/engagementService";
 import { listFrozenBalances, getTotalFrozen, withdrawFrozen } from "../services/frozenService";
 
 dotenv.config();
@@ -21,9 +22,10 @@ export const bot = new Bot(BOT_TOKEN || "0:missing-token");
 export async function setupBotMenu() {
   await bot.api.setMyCommands([
     { command: "start", description: "🚀 NexTrade'ni ochish" },
-    { command: "kunlik", description: "🎁 Kunlik bonus" },
+    { command: "kunlik", description: "🔥 Kunlik bonus (seriya)" },
     { command: "hamyon", description: "👛 Balans va hamyon kodi" },
-    { command: "reyting", description: "🏆 Eng boy foydalanuvchilar" },
+    { command: "liga", description: "🏆 Haftalik liga" },
+    { command: "reyting", description: "💎 Eng boy foydalanuvchilar" },
     { command: "referral", description: "👥 Do'stlarni taklif qilish" },
   ]);
   if (MINI_APP_URL.startsWith("https://")) {
@@ -50,16 +52,16 @@ bot.command("start", async (ctx) => {
   const keyboard = new InlineKeyboard().webApp("🚀 NexTrade'ni ochish", MINI_APP_URL);
 
   const bonusNote = referrerTelegramId
-    ? "\n\n🎁 Referal havolasi orqali kirganingiz uchun qo'shimcha bonus qo'shildi!"
+    ? `\n\n🎁 Siz do'stingiz taklifi bilan keldingiz! Birinchi savdoingizni qiling - ikkalangizga +${REFERRAL_REWARD} Nex Trade beriladi.`
     : "";
 
   await ctx.reply(
-    `NexTrade platformasiga xush kelibsiz!\n\n` +
-      `💰 Balansingiz: ${user.nex_trade_balance} Nex Trade\n\n` +
-      `NexTrade — bu o'zingizning shaxsiy tokeningizni yaratib, boshqa foydalanuvchilar bilan erkin savdo qilishingiz mumkin bo'lgan platforma. ` +
-      `Token narxi faqat bozor talabiga (sotib olish/sotish) qarab avtomatik o'zgaradi.${bonusNote}\n\n` +
-      `Pastdagi tugma orqali ilovani oching 👇\n\n` +
-      `Do'stlaringizni taklif qilib bonus olish uchun /referral buyrug'ini yuboring.`,
+    `👋 NexTrade'ga xush kelibsiz!\n\n` +
+      `💰 Balansingiz: ${Number(user.nex_trade_balance).toFixed(2)} Nex Trade\n\n` +
+      `🪙 O'z tokeningizni yarating, boshqalarnikini sotib oling va foyda bilan soting.\n` +
+      `🔥 Har kuni kiring - kunlik bonus seriyasi 100 Nex gacha o'sadi\n` +
+      `🏆 Haftalik ligada top-10 ga kiring - mukofot oling${bonusNote}\n\n` +
+      `Pastdagi tugma orqali ilovani oching 👇`,
     { reply_markup: keyboard }
   );
 });
@@ -70,8 +72,8 @@ bot.command("referral", async (ctx) => {
 
   const link = `https://t.me/${BOT_USERNAME}?start=ref_${telegramId}`;
   await ctx.reply(
-    `👥 Do'stlaringizni taklif qiling va bonus Nex Trade oling!\n\n` +
-      `Har bir yangi do'stingiz ushbu havola orqali qo'shilganda, ikkalangizga ham qo'shimcha bonus beriladi.\n\n` +
+    `👥 Do'stlaringizni taklif qiling!\n\n` +
+      `Do'stingiz shu havola orqali kirib, birinchi savdosini qilganda ikkalangizga ham +${REFERRAL_REWARD} Nex Trade beriladi.\n\n` +
       `Sizning shaxsiy havolangiz:\n${link}`
   );
 });
@@ -114,14 +116,38 @@ bot.command("kunlik", async (ctx) => {
   const user = await getOrCreateUser(telegramId, ctx.from?.username);
 
   try {
-    const result = await claimDailyBonus(user.id);
+    const result = await claimStreakBonus(user.id);
     await ctx.reply(
-      `🎁 Kunlik bonus olindi: +${result.bonus} Nex Trade!\n` +
-        `💰 Yangi balans: ${Number(result.newBalance).toFixed(2)} Nex Trade`
+      `🎁 Kunlik bonus: +${result.bonus} Nex Trade!\n` +
+        `🔥 Seriya: ${result.streak} kun ketma-ket\n` +
+        `💰 Balans: ${Number(result.newBalance).toFixed(2)} Nex Trade\n\n` +
+        `Ertaga kelsangiz: +${result.nextReward} Nex. Seriyani uzmang!`
     );
   } catch (err: any) {
     await ctx.reply(`⏳ ${err.message}`);
   }
+});
+
+bot.command("liga", async (ctx) => {
+  const telegramId = ctx.from?.id;
+  if (!telegramId) return;
+  const user = await getOrCreateUser(telegramId, ctx.from?.username);
+  const league = await getLeague(user.id);
+  const medals = ["🥇", "🥈", "🥉"];
+  const lines = league.top.map((u) => {
+    const name = u.username ? `@${u.username}` : "Foydalanuvchi";
+    return `${medals[u.rank - 1] ?? u.rank + "."} ${name} — +${u.pnl.toFixed(2)} Nex (🎁 ${u.prize})`;
+  });
+  const endsAt = new Date(league.endsAt);
+  const hoursLeft = Math.max(0, Math.round((endsAt.getTime() - Date.now()) / 3_600_000));
+  const keyboard = new InlineKeyboard().webApp("🏆 Ligani ochish", MINI_APP_URL);
+  await ctx.reply(
+    `🏆 Haftalik liga\n` +
+      `⏳ Tugashiga ${Math.floor(hoursLeft / 24)} kun ${hoursLeft % 24} soat qoldi\n\n` +
+      (lines.length ? lines.join("\n") : "Hali hech kim foyda bilan sotmadi - birinchi bo'ling!") +
+      (league.me ? `\n\nSiz: ${league.me.rank}-o'rin (+${league.me.pnl.toFixed(2)} Nex)` : ""),
+    { reply_markup: keyboard }
+  );
 });
 
 // Muzlatilgan fond (savdo komissiyasining 0.15% qismi) holatini ko'rish - faqat admin

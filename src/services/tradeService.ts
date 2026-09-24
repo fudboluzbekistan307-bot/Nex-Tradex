@@ -3,7 +3,8 @@ import { calculateBuyCost, calculateSellReturn, ceil4, floor4, MIN_TRADE_AMOUNT 
 import { recordBalanceSnapshot } from "./balanceHistoryService";
 import { addFrozenAmount } from "./frozenService";
 import { addCreatorBonus } from "./bonusService";
-import { notifyCreatorCommission } from "../bot/bot";
+import { notifyCreatorCommission, sendTelegramMessage } from "../bot/bot";
+import { rewardReferralOnFirstTrade } from "./engagementService";
 
 // Token yaratuvchisi o'z tokenidan max_supply ning 25% igacha, oddiy
 // foydalanuvchilar esa faqat 10% igacha egalik qilishi mumkin (joriy
@@ -147,7 +148,20 @@ export async function buyToken(userId: number, tokenId: number, rawAmount: numbe
       [userId, tokenId, amount, newPrice, totalCost, commission]
     );
 
+    // Taklif orqali kelgan bo'lsa - birinchi savdoda ikkala tomonga referal bonusi
+    const referral = await rewardReferralOnFirstTrade(client, userId);
+    const finalBal = referral
+      ? (await client.query("SELECT nex_trade_balance FROM users WHERE id = $1", [userId])).rows[0].nex_trade_balance
+      : balRes.rows[0].nex_trade_balance;
+
     await client.query("COMMIT");
+
+    if (referral) {
+      sendTelegramMessage(
+        referral.referrerTelegramId,
+        `🎉 Siz taklif qilgan do'stingiz birinchi savdosini qildi!\n+${referral.reward} Nex Trade balansingizga qo'shildi.`
+      );
+    }
 
     // Tranzaksiya muvaffaqiyatli yakunlangandan keyingina yaratuvchiga xabar
     // yuboramiz - shu bilan ROLLBACK bo'lgan savdolar uchun noto'g'ri xabar
@@ -156,7 +170,7 @@ export async function buyToken(userId: number, tokenId: number, rawAmount: numbe
       notifyCreatorCommission(creatorTelegramId, token.name, token.symbol, creatorCommission, "buy");
     }
 
-    return { amount, totalCost, commission, totalCharge, newPrice, newSupply, newBalance: balRes.rows[0].nex_trade_balance };
+    return { amount, totalCost, commission, totalCharge, newPrice, newSupply, newBalance: finalBal, referralBonus: referral?.reward ?? 0 };
   } catch (err) {
     await client.query("ROLLBACK");
     throw err;
@@ -239,10 +253,14 @@ export async function sellToken(userId: number, tokenId: number, rawAmount: numb
     // Komissiyaning 0.15% ulushi muzlatilgan fondga qo'shiladi
     await addFrozenAmount(client, tokenId, frozenCommission);
 
+    // Aniq foyda/zarar = qo'lga tushgan sof summa - shu tokenlar uchun to'langan o'rtacha narx.
+    // Haftalik liga aynan shu qiymat bo'yicha hisoblanadi.
+    const realizedPnl = netReturn - Number(holding.avg_cost) * amount;
+
     await client.query(
-      `INSERT INTO transactions (user_id, token_id, type, amount, price, total_cost, commission)
-       VALUES ($1, $2, 'sell', $3, $4, $5, $6)`,
-      [userId, tokenId, amount, newPrice, totalReturn, commission]
+      `INSERT INTO transactions (user_id, token_id, type, amount, price, total_cost, commission, realized_pnl)
+       VALUES ($1, $2, 'sell', $3, $4, $5, $6, $7)`,
+      [userId, tokenId, amount, newPrice, totalReturn, commission, realizedPnl]
     );
 
     await client.query("COMMIT");
@@ -254,7 +272,7 @@ export async function sellToken(userId: number, tokenId: number, rawAmount: numb
       notifyCreatorCommission(creatorTelegramId, token.name, token.symbol, creatorCommission, "sell");
     }
 
-    return { amount, totalReturn: netReturn, grossReturn: totalReturn, commission, newPrice, newSupply, newBalance: balRes.rows[0].nex_trade_balance };
+    return { amount, totalReturn: netReturn, grossReturn: totalReturn, commission, newPrice, newSupply, realizedPnl, newBalance: balRes.rows[0].nex_trade_balance };
   } catch (err) {
     await client.query("ROLLBACK");
     throw err;

@@ -283,3 +283,44 @@ CREATE INDEX IF NOT EXISTS idx_transactions_token_time ON transactions(token_id,
 CREATE INDEX IF NOT EXISTS idx_users_referred_by ON users(referred_by);
 CREATE INDEX IF NOT EXISTS idx_nex_topups_user_time ON nex_topups(user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_token_alerts_user ON token_alerts(user_id);
+
+-- ====== v3: JALB QILISH FUNKSIYALARI ======
+-- Kunlik bonus seriyasi (streak): ketma-ket necha kun bonus olingani
+ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_streak INTEGER NOT NULL DEFAULT 0;
+
+-- Referal bonusi endi taklif qilingan do'st BIRINCHI SAVDOSINI qilganda beriladi.
+-- Mavjud foydalanuvchilar eski tizimda bonusni olib bo'lgan - ular uchun true.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_rewarded BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE users ALTER COLUMN referral_rewarded SET DEFAULT false;
+
+-- Sotishdagi aniq foyda/zarar (haftalik liga shu asosda hisoblanadi)
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS realized_pnl NUMERIC(20, 8);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_time ON transactions(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_transactions_time ON transactions(created_at);
+
+-- Vazifalar: har bir vazifa har davr (kun yoki bir martalik) uchun bir marta olinadi
+CREATE TABLE IF NOT EXISTS mission_claims (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    mission_id VARCHAR(32) NOT NULL,
+    period_key VARCHAR(16) NOT NULL,
+    reward NUMERIC(20, 4) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE(user_id, mission_id, period_key)
+);
+
+-- Haftalik liga mukofotlari (har hafta, har o'rin uchun faqat bir marta)
+CREATE TABLE IF NOT EXISTS league_payouts (
+    id SERIAL PRIMARY KEY,
+    week_key VARCHAR(16) NOT NULL,
+    rank INTEGER NOT NULL,
+    user_id INTEGER REFERENCES users(id),
+    pnl NUMERIC(20, 8) NOT NULL DEFAULT 0,
+    reward NUMERIC(20, 4) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE(week_key, rank)
+);
+
+-- Kanalga "+50%" e'lonlari uchun oxirgi e'lon qilingan narx
+ALTER TABLE tokens ADD COLUMN IF NOT EXISTS last_announced_price NUMERIC(20, 8);
+CREATE INDEX IF NOT EXISTS idx_favorites_user_time ON favorites(user_id, created_at);

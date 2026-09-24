@@ -442,6 +442,58 @@
     width:100%; background:var(--gold); color:#1a1200; border:none; border-radius:14px;
     padding:14px; font-weight:700; font-size:15px; cursor:pointer;
   }
+/* ====== v3: bozor tartiblash, statistika, seriya, vazifalar, liga, ulashish ====== */
+  .sort-chips{ display:flex; gap:8px; overflow-x:auto; margin:0 0 12px; padding-bottom:2px; }
+  .sort-chips::-webkit-scrollbar{ display:none; }
+  .sort-chip{ flex-shrink:0; background:var(--card); border:1px solid var(--border); border-radius:20px; padding:7px 13px; font-size:12.5px; font-weight:700; color:var(--muted); }
+  .sort-chip.active{ background:var(--gold); color:#1a1200; border-color:var(--gold); }
+  .chg{ font-size:11.5px; font-weight:700; margin-top:3px; font-family:'Space Grotesk',sans-serif; }
+  .chg.up{ color:var(--up); } .chg.down{ color:var(--down); }
+  .range-row{ display:flex; gap:6px; justify-content:flex-end; margin:6px 0 10px; }
+  .range-btn{ background:var(--card); border:1px solid var(--border); color:var(--muted); border-radius:8px; padding:5px 11px; font-size:12px; font-weight:700; }
+  .range-btn.active{ color:var(--gold); border-color:var(--gold); }
+  .stats-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .stats-grid .s-label{ font-size:11.5px; color:var(--muted); }
+  .stats-grid .s-val{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:15px; margin-top:2px; }
+  .holder-row{ display:flex; justify-content:space-between; gap:10px; font-size:13px; padding:8px 0; border-top:1px solid var(--border); }
+  .holder-row span:first-child{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .streak-box{ background:linear-gradient(135deg, rgba(255,122,69,.14), rgba(255,200,87,.06)); border:1px solid var(--ember); border-radius:14px; padding:14px; margin-top:12px; width:100%; text-align:left; }
+  .streak-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .streak-dots{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin:12px 0 2px; }
+  .streak-dot{ background:var(--bg-elevated); border:1px solid var(--border); border-radius:10px; padding:6px 0; text-align:center; font-size:10px; color:var(--muted); }
+  .streak-dot b{ display:block; font-family:'Space Grotesk',sans-serif; font-size:12px; color:var(--text); }
+  .streak-dot.done{ background:rgba(255,122,69,.18); border-color:var(--ember); }
+  .streak-dot.done b{ color:var(--ember); }
+  .streak-dot.next{ border-color:var(--gold); border-style:dashed; }
+  .missions-box{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:6px 14px; margin-top:12px; width:100%; text-align:left; }
+  .mission-row{ display:flex; align-items:center; gap:10px; padding:11px 0; border-top:1px solid var(--border); }
+  .mission-row:first-child{ border-top:none; }
+  .mission-emoji{ font-size:20px; width:28px; text-align:center; flex-shrink:0; }
+  .mission-info{ flex:1; min-width:0; }
+  .mission-title{ font-size:13px; font-weight:600; }
+  .mission-meta{ font-size:11px; color:var(--muted); margin-top:2px; }
+  .mission-bar{ height:4px; background:var(--border); border-radius:2px; margin-top:6px; overflow:hidden; }
+  .mission-bar i{ display:block; height:100%; background:var(--up); }
+  .mission-btn{ background:var(--gold); color:#1a1200; border:none; border-radius:9px; padding:8px 11px; font-weight:700; font-size:12px; white-space:nowrap; flex-shrink:0; }
+  .mission-btn:disabled{ background:var(--bg-elevated); color:var(--muted); }
+  .league-hero{ background:linear-gradient(160deg, #2A2110, #140F00 70%); border:1px solid var(--gold); border-radius:18px; padding:18px; margin-bottom:12px; color:#fff; }
+  .league-hero .big{ font-family:'Space Grotesk',sans-serif; font-size:21px; font-weight:700; color:#FFC857; margin-top:4px; }
+  .league-hero .sub{ font-size:12.5px; color:#cfc6b0; margin-top:6px; line-height:1.5; }
+  .league-row{ display:flex; align-items:center; gap:10px; padding:11px 12px; background:var(--card); border:1px solid var(--border); border-radius:12px; margin-bottom:8px; }
+  .league-row.me{ border-color:var(--gold); background:rgba(255,200,87,.08); }
+  .league-rank{ width:30px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:15px; text-align:center; flex-shrink:0; }
+  .league-name{ flex:1; min-width:0; font-weight:600; font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .league-pnl{ text-align:right; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:13.5px; color:var(--up); }
+  .league-prize{ font-size:11px; color:var(--gold); font-weight:700; }
+  .prize-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+  .prize-cell{ background:var(--bg-elevated); border:1px solid var(--border); border-radius:10px; padding:6px 0; text-align:center; font-size:10.5px; color:var(--muted); }
+  .prize-cell b{ display:block; color:var(--gold); font-family:'Space Grotesk',sans-serif; font-size:12.5px; }
+  .share-card{ border-radius:20px; padding:24px 18px; text-align:center; background:linear-gradient(145deg,#1d2a4a,#0c1020 60%,#2a1a08); border:1px solid #FFC857; color:#fff; margin-bottom:14px; }
+  .share-card .brand{ font-family:'Space Grotesk',sans-serif; font-weight:700; letter-spacing:.08em; font-size:12px; color:#FFC857; }
+  .share-card .pct{ font-family:'Space Grotesk',sans-serif; font-size:46px; font-weight:700; margin:8px 0 2px; }
+  .share-card .what{ font-size:14px; color:#d9dcea; }
+  .share-btn{ background:transparent; border:1px solid var(--border); color:var(--text); border-radius:10px; padding:8px 12px; font-weight:700; font-size:12.5px; }
+
 </style>
 </head>
 <body>
@@ -466,6 +518,7 @@
   <button class="tab-btn active" data-tab="market">Bozor</button>
   <button class="tab-btn" data-tab="portfolio">Portfelim</button>
   <button class="tab-btn" data-tab="create">Yaratish</button>
+  <button class="tab-btn" data-tab="league">Liga</button>
   <button class="tab-btn" data-tab="profile">Profil</button>
   <button class="tab-btn" data-tab="admin" id="admin-tab-btn" style="display:none;">Admin</button>
 </nav>
@@ -481,6 +534,12 @@
     <div class="section-title hidden" id="favorites-title" style="display:none;">⭐ Sevimlilar</div>
     <div class="leaderboard" id="favorites-list"></div>
     <div class="section-title" id="market-list-title">Barcha tokenlar</div>
+    <div class="sort-chips" id="sort-chips">
+      <button class="sort-chip active" data-sort="trend">🔥 Trend</button>
+      <button class="sort-chip" data-sort="new">🆕 Yangi</button>
+      <button class="sort-chip" data-sort="volume">💰 Hajm</button>
+      <button class="sort-chip" data-sort="price">📈 Narx</button>
+    </div>
     <div id="market-list"></div>
   </section>
 
@@ -488,9 +547,12 @@
     <div class="portfolio-summary" id="portfolio-summary" style="display:none;">
       <div>
         <div class="label">Umumiy foyda/zarar</div>
-        <div class="value num" id="portfolio-pnl-value">0 UZS</div>
+        <div class="value num" id="portfolio-pnl-value">0 Nex</div>
       </div>
-      <div class="pnl" id="portfolio-pnl-pct" style="font-size:15px;">0%</div>
+      <div style="text-align:right;">
+        <div class="pnl" id="portfolio-pnl-pct" style="font-size:15px;">0%</div>
+        <button class="share-btn" id="portfolio-share-btn" style="margin-top:6px;">📤 Ulashish</button>
+      </div>
     </div>
     <div class="card" style="margin-bottom:14px;">
       <div class="detail-meta" style="margin-bottom:6px;">Balans tarixi</div>
@@ -546,16 +608,23 @@
           <div class="stat-label">Taklif qilingan</div>
         </div>
       </div>
-      <div class="daily-bonus-box">
-        <div>
-          <div style="font-weight:600;font-size:13.5px;">🎁 Kunlik bonus</div>
-          <div class="hint" id="daily-bonus-hint">Har 24 soatda bepul Nex Trade oling</div>
+      <div class="streak-box">
+        <div class="streak-head">
+          <div>
+            <div style="font-weight:700;font-size:14px;">🔥 Kunlik bonus seriyasi</div>
+            <div class="hint" id="daily-bonus-hint" style="margin-top:2px;">Har kuni kiring - bonus o'sib boradi</div>
+          </div>
+          <button class="daily-bonus-btn" id="daily-bonus-btn">Olish</button>
         </div>
-        <button class="daily-bonus-btn" id="daily-bonus-btn">Olish</button>
+        <div class="streak-dots" id="streak-dots"></div>
+      </div>
+      <div class="missions-box">
+        <div style="font-weight:700;font-size:14px;padding:10px 0 4px;">🎯 Vazifalar</div>
+        <div id="missions-list"><div class="hint" style="padding:10px 0;">Yuklanmoqda...</div></div>
       </div>
       <div class="referral-box">
         <div style="font-weight:600;font-size:13.5px;">👥 Do'stlarni taklif qiling</div>
-        <div class="hint">Har bir yangi do'stingiz uchun ikkalangizga ham bonus Nex Trade beriladi.</div>
+        <div class="hint" id="referral-hint">Do'stingiz havolangiz orqali kirib, birinchi savdosini qilganda ikkalangizga ham bonus beriladi.</div>
         <div class="referral-link" id="referral-link">—</div>
       </div>
       <div class="referral-box" id="wallet-open-btn" style="cursor:pointer;background:linear-gradient(135deg, rgba(255,193,68,.12), rgba(255,138,92,.06));border-color:var(--gold);">
@@ -579,6 +648,24 @@
     </div>
     <div class="section-title">Mening tokenlarim</div>
     <div id="my-tokens-list"></div>
+  </section>
+
+  <section class="screen" id="screen-league">
+    <div class="league-hero">
+      <div style="font-size:13px;font-weight:700;letter-spacing:.06em;color:#FFC857;">🏆 HAFTALIK LIGA</div>
+      <div class="big" id="league-countdown">—</div>
+      <div class="sub">Hafta davomida tokenlarni <b>foyda bilan soting</b>. Eng ko'p foyda qilgan 10 kishi yakshanba tugagach avtomatik mukofot oladi. Har dushanba hisob yangidan boshlanadi.</div>
+    </div>
+    <div class="card">
+      <div class="hint" style="margin:0;">Sizning natijangiz</div>
+      <div id="league-me" style="font-weight:700;font-size:15px;margin-top:4px;">—</div>
+      <div class="hint" id="league-rules" style="margin-top:6px;">—</div>
+    </div>
+    <div class="section-title">Mukofotlar (Nex Trade)</div>
+    <div class="prize-grid" id="league-prizes" style="margin-bottom:16px;"></div>
+    <div class="section-title">Joriy hafta top-10</div>
+    <div id="league-list"></div>
+    <div id="league-last" style="margin-top:14px;"></div>
   </section>
 
   <div class="detail-overlay" id="wallet-overlay">
@@ -735,6 +822,18 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="share-modal">
+  <div class="modal">
+    <div class="share-card">
+      <div class="brand">NEXTRADE</div>
+      <div class="pct" id="share-pct">+0%</div>
+      <div class="what" id="share-what">—</div>
+    </div>
+    <button class="primary" id="share-send">📤 Telegram'da ulashish</button>
+    <button class="ghost" id="share-cancel">Yopish</button>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="trade-modal">
   <div class="modal">
     <h3 id="modal-token-name">—</h3>
@@ -782,12 +881,28 @@
   <div class="detail-body">
     <div class="detail-price-big num" id="detail-price">0.0000</div>
     <div class="detail-meta" id="detail-supply">—</div>
-    <canvas id="priceChart" height="140"></canvas>
+    <div class="range-row" id="range-row">
+        <button class="range-btn active" data-range="1h">1 soat</button>
+        <button class="range-btn" data-range="24h">24 soat</button>
+        <button class="range-btn" data-range="7d">7 kun</button>
+      </div>
+      <canvas id="priceChart" height="140"></canvas>
     <div class="detail-actions">
       <button class="primary" id="detail-buy">Sotib olish</button>
       <button class="ghost" id="detail-sell" style="margin-top:0;">Sotish</button>
     </div>
-    <div class="card" id="detail-boost-card" style="display:none;margin-top:14px;">
+    <button class="ghost" id="detail-share" style="margin-top:10px;">📤 Do'stlarga ulashish</button>
+      <div class="card" id="detail-stats-card" style="margin-top:14px;">
+        <div class="stats-grid">
+          <div><div class="s-label">24 soatda</div><div class="s-val" id="st-change">—</div></div>
+          <div><div class="s-label">24s savdo hajmi</div><div class="s-val" id="st-volume">—</div></div>
+          <div><div class="s-label">Egalar</div><div class="s-val" id="st-holders">—</div></div>
+          <div><div class="s-label">Bozor qiymati</div><div class="s-val" id="st-mcap">—</div></div>
+        </div>
+        <div class="hint" id="st-creator" style="margin-top:10px;">—</div>
+        <div id="st-top" style="margin-top:8px;"></div>
+      </div>
+      <div class="card" id="detail-boost-card" style="display:none;margin-top:14px;">
       <div style="font-weight:700;margin-bottom:4px;">🚀 Tokenni kuchaytirish</div>
       <div class="hint" style="margin:0 0 10px;">O'z Nex Trade balansingizdan mablag' kiriting - bu summa qaytarilmaydi, lekin tokeningizning narxini butunlay (doimiy) oshiradi.</div>
       <div class="field">
@@ -884,6 +999,7 @@
       document.getElementById("screen-"+btn.dataset.tab).classList.add("active");
       if(btn.dataset.tab === "portfolio") loadPortfolio();
       if(btn.dataset.tab === "profile") loadProfile();
+      if(btn.dataset.tab === "league") loadLeague();
       if(btn.dataset.tab === "admin"){ loadAdminFrozen(); loadAdminWithdrawStatus(); }
     });
   });
@@ -1088,6 +1204,7 @@
         </div>
         <div class="token-price">
           <div class="p num">${Number(t.current_price).toFixed(4)}</div>
+          ${chgHtml(t.change_24h)}
           <div class="fill"><i style="width:${fillPct}%"></i></div>
         </div>
       </div>`;
@@ -1166,7 +1283,7 @@
 
   async function loadMarket(query){
     try{
-      const path = query && query.trim() ? `/tokens?q=${encodeURIComponent(query.trim())}` : "/tokens";
+      const path = query && query.trim() ? `/tokens?q=${encodeURIComponent(query.trim())}&sort=${currentSort}` : `/tokens?sort=${currentSort}`;
       const tokens = await api(path);
       renderMarket(tokens);
 
@@ -1239,23 +1356,9 @@
       toast("Havola nusxalandi!");
     };
 
-    const bonusBtn = document.getElementById("daily-bonus-btn");
-    bonusBtn.onclick = async ()=>{
-      const restore = setLoading(bonusBtn, "");
-      try{
-        const res = await api(`/user/${currentUser.id}/daily-bonus`, { method: "POST" });
-        currentUser.nex_trade_balance = res.newBalance;
-        document.getElementById("stat-balance").textContent = fmt(res.newBalance);
-        document.getElementById("daily-bonus-hint").textContent = `+${res.bonus} Nex Trade olindi! Ertaga qayta keling.`;
-        toast(`🎁 +${res.bonus} Nex Trade qo'shildi!`);
-        restore();
-        bonusBtn.disabled = true;
-      }catch(e){
-        document.getElementById("daily-bonus-hint").textContent = friendlyError(e);
-        restore();
-        toast(friendlyError(e));
-      }
-    };
+    loadStreak();
+    loadMissions();
+    loadReferralHint();
 
     api(`/user/${currentUser.id}/wallet`).then(w=>{
       document.getElementById("wallet-code-preview").textContent = w.wallet_code;
@@ -1392,7 +1495,8 @@
         summary.style.display = "flex";
         const valueEl = document.getElementById("portfolio-pnl-value");
         const pctEl = document.getElementById("portfolio-pnl-pct");
-        valueEl.textContent = `${diff >= 0 ? "+" : ""}${fmt(diff)} UZS`;
+        valueEl.textContent = `${diff >= 0 ? "+" : ""}${fmt(diff)} Nex`;
+        lastPortfolio = { pct: totalPct, diff };
         valueEl.style.color = diff >= 0 ? "var(--up)" : "var(--down)";
         pctEl.textContent = `${totalPct >= 0 ? "+" : ""}${totalPct.toFixed(1)}%`;
         pctEl.className = "pnl " + (totalPct > 0.01 ? "pos" : totalPct < -0.01 ? "neg" : "flat");
@@ -1434,11 +1538,12 @@
       }
 
       const [chart, history] = await Promise.all([
-        api(`/tokens/${tokenId}/chart`),
+        api(`/tokens/${tokenId}/chart?range=${currentRange}`),
         api(`/tokens/${tokenId}/history`)
       ]);
       drawPriceChart(chart, Number(token.base_price));
       renderHistoryList(history);
+      loadTokenStats(tokenId);
     }catch(e){ /* jim - fon yangilanishida toast chiqarmaymiz */ }
   }
 
@@ -2081,7 +2186,7 @@
       if(!all.length) return;
       const items = all.map(t=>{
         const base = Number(t.base_price) || Number(t.current_price);
-        const pct = base > 0 ? ((Number(t.current_price) - base) / base) * 100 : 0;
+        const pct = t.change_24h !== undefined ? Number(t.change_24h) : (base > 0 ? ((Number(t.current_price) - base) / base) * 100 : 0);
         const isUp = pct >= 0;
         return `<span class="ticker-item">
           <span class="sym">$${esc(t.symbol)}</span>
@@ -2111,6 +2216,251 @@
     flashNumber(el, newValue, old);
     el.dataset.raw = newValue;
   }
+
+  // ================================================================
+  // ====== v3: SERIYA, VAZIFALAR, LIGA, STATISTIKA, ULASHISH ======
+  // ================================================================
+  let currentSort = "trend";
+  let currentRange = "1h";
+  let lastPortfolio = null;
+  let lastDetailStats = null;
+
+  function chgHtml(v){
+    if(v === undefined || v === null || isNaN(Number(v))) return "";
+    const n = Number(v);
+    const up = n >= 0;
+    return `<div class="chg ${up ? "up" : "down"}">${up ? "▲" : "▼"} ${Math.abs(n).toFixed(1)}%</div>`;
+  }
+
+  function myRefLink(){
+    const tgId = tg?.initDataUnsafe?.user?.id || currentUser?.telegram_id;
+    return `https://t.me/${BOT_USERNAME}?start=ref_${tgId}`;
+  }
+
+  // --- Bozor tartiblash
+  document.querySelectorAll("#sort-chips .sort-chip").forEach(chip=>{
+    chip.addEventListener("click", ()=>{
+      document.querySelectorAll("#sort-chips .sort-chip").forEach(c=>c.classList.remove("active"));
+      chip.classList.add("active");
+      currentSort = chip.dataset.sort;
+      loadMarket(document.getElementById("search-input").value);
+    });
+  });
+
+  // --- Grafik oralig'i
+  document.querySelectorAll("#range-row .range-btn").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      document.querySelectorAll("#range-row .range-btn").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      currentRange = b.dataset.range;
+      if(selectedTokenId) refreshTokenDetail(selectedTokenId);
+    });
+  });
+
+  // --- Token statistikasi
+  async function loadTokenStats(tokenId){
+    try{
+      const s = await api(`/tokens/${tokenId}/stats`);
+      lastDetailStats = s;
+      const ch = document.getElementById("st-change");
+      ch.textContent = `${s.change24h >= 0 ? "+" : ""}${s.change24h.toFixed(1)}%`;
+      ch.style.color = s.change24h >= 0 ? "var(--up)" : "var(--down)";
+      document.getElementById("st-volume").textContent = fmt(s.volume24h) + " Nex";
+      document.getElementById("st-holders").textContent = s.holders + " ta";
+      document.getElementById("st-mcap").textContent = fmt(s.marketCap) + " Nex";
+      document.getElementById("st-creator").textContent =
+        `👤 Yaratuvchi: ${s.creator ? (s.creator === "NexTrade" ? "NexTrade" : "@" + s.creator) : "—"} · 24 soatda ${s.trades24h} ta savdo`;
+      document.getElementById("st-top").innerHTML = s.topHolders.length
+        ? `<div class="hint" style="margin:0 0 4px;">🐳 Eng katta egalar</div>` +
+          s.topHolders.map((h,i)=>`<div class="holder-row"><span>${i+1}. ${esc(h.name)}</span><span class="num">${fmt(h.amount)} <span style="color:var(--muted);">(${h.pct.toFixed(1)}%)</span></span></div>`).join("")
+        : `<div class="hint">Hali hech kim sotib olmagan - birinchi bo'ling!</div>`;
+    }catch(e){ /* jim */ }
+  }
+
+  // --- Kunlik bonus seriyasi
+  async function loadStreak(){
+    const btn = document.getElementById("daily-bonus-btn");
+    const hint = document.getElementById("daily-bonus-hint");
+    try{
+      const s = await api(`/user/${currentUser.id}/streak`);
+      const dots = document.getElementById("streak-dots");
+      const done = s.claimedToday ? s.cycleDay : (s.streak > 0 ? s.cycleDay : 0);
+      dots.innerHTML = s.rewards.map((r,i)=>{
+        const day = i + 1;
+        const cls = day <= done ? "done" : (day === done + 1 && !s.claimedToday ? "next" : "");
+        return `<div class="streak-dot ${cls}"><b>${r}</b>${day}-kun</div>`;
+      }).join("");
+      if(s.claimedToday){
+        btn.disabled = true;
+        btn.textContent = "✅ Olindi";
+        hint.textContent = `🔥 ${s.streak} kun ketma-ket! Ertaga: +${s.nextReward} Nex`;
+      }else{
+        btn.disabled = false;
+        btn.textContent = `+${s.nextReward}`;
+        hint.textContent = s.streak > 0
+          ? `🔥 Seriya: ${s.streak} kun. Bugun olmasangiz, seriya uziladi!`
+          : "Har kuni kiring - bonus 5 dan 100 Nex gacha o'sadi";
+      }
+    }catch(e){ hint.textContent = friendlyError(e); }
+  }
+
+  document.getElementById("daily-bonus-btn").onclick = async ()=>{
+    const btn = document.getElementById("daily-bonus-btn");
+    const restore = setLoading(btn, "");
+    try{
+      const res = await api(`/user/${currentUser.id}/daily-bonus`, { method: "POST" });
+      currentUser.nex_trade_balance = res.newBalance;
+      setBalance(res.newBalance);
+      document.getElementById("stat-balance").textContent = fmt(res.newBalance);
+      toast(`🔥 +${res.bonus} Nex! Seriya: ${res.streak} kun`);
+      tg?.HapticFeedback?.notificationOccurred?.("success");
+    }catch(e){ toast(friendlyError(e)); }
+    finally{ restore(); loadStreak(); loadMissions(); }
+  };
+
+  // --- Vazifalar
+  async function loadMissions(){
+    const list = document.getElementById("missions-list");
+    try{
+      const ms = await api(`/user/${currentUser.id}/missions`);
+      // Olinmagan bajarilganlar tepada, keyin jarayondagilar, oxirida olinganlar
+      ms.sort((a,b)=> (a.claimed - b.claimed) || (b.done - a.done));
+      list.innerHTML = ms.map(m=>{
+        const pct = Math.round((m.progress / m.target) * 100);
+        const btn = m.claimed
+          ? `<button class="mission-btn" disabled>✅</button>`
+          : m.done
+            ? `<button class="mission-btn" data-mission="${esc(m.id)}">+${m.reward}</button>`
+            : `<button class="mission-btn" disabled>+${m.reward}</button>`;
+        return `<div class="mission-row">
+          <div class="mission-emoji">${m.emoji}</div>
+          <div class="mission-info">
+            <div class="mission-title">${esc(m.title)}</div>
+            <div class="mission-meta">${m.period === "daily" ? "Kunlik" : "Bir martalik"} · ${m.progress}/${m.target}</div>
+            <div class="mission-bar"><i style="width:${pct}%"></i></div>
+          </div>
+          ${btn}
+        </div>`;
+      }).join("");
+      list.querySelectorAll("[data-mission]").forEach(b=>{
+        b.addEventListener("click", async ()=>{
+          const restore = setLoading(b, "");
+          try{
+            const r = await api(`/user/${currentUser.id}/missions/${b.dataset.mission}/claim`, { method: "POST" });
+            currentUser.nex_trade_balance = r.newBalance;
+            setBalance(r.newBalance);
+            document.getElementById("stat-balance").textContent = fmt(r.newBalance);
+            toast(`🎯 Vazifa bajarildi: +${r.reward} Nex!`);
+            tg?.HapticFeedback?.notificationOccurred?.("success");
+          }catch(e){ toast(friendlyError(e)); restore(); }
+          loadMissions();
+        });
+      });
+    }catch(e){ list.innerHTML = `<div class="hint" style="padding:10px 0;">${esc(friendlyError(e))}</div>`; }
+  }
+
+  async function loadReferralHint(){
+    try{
+      const r = await api("/referral-info");
+      document.getElementById("referral-hint").textContent =
+        `Do'stingiz havolangiz orqali kirib, birinchi savdosini qilganda ikkalangizga ham +${r.reward} Nex Trade beriladi.`;
+    }catch(e){ /* jim */ }
+  }
+
+  // --- Haftalik liga
+  let leagueTimer = null;
+  async function loadLeague(){
+    try{
+      const L = await api("/league");
+      const endsAt = new Date(L.endsAt).getTime();
+      const tick = ()=>{
+        const ms = Math.max(0, endsAt - Date.now());
+        const d = Math.floor(ms / 86400000), h = Math.floor(ms / 3600000) % 24, m = Math.floor(ms / 60000) % 60;
+        document.getElementById("league-countdown").textContent = `⏳ ${d} kun ${h} soat ${m} daqiqa`;
+      };
+      tick();
+      if(leagueTimer) clearInterval(leagueTimer);
+      leagueTimer = setInterval(tick, 30000);
+
+      document.getElementById("league-prizes").innerHTML = L.prizes.map((p,i)=>
+        `<div class="prize-cell"><b>${fmt(p)}</b>${i+1}-o'rin</div>`).join("");
+
+      const meEl = document.getElementById("league-me");
+      if(L.me && L.me.qualified){
+        meEl.innerHTML = `<span style="color:var(--gold);">${L.me.rank}-o'rin</span> · <span style="color:var(--up);">+${fmt(L.me.pnl)} Nex</span> foyda`;
+      }else if(L.me){
+        meEl.innerHTML = `Foyda: <span style="color:${L.me.pnl >= 0 ? "var(--up)" : "var(--down)"};">${L.me.pnl >= 0 ? "+" : ""}${fmt(L.me.pnl)} Nex</span> · ${L.me.sells} ta sotuv`;
+      }else{
+        meEl.textContent = "Bu hafta hali foyda bilan sotmadingiz";
+      }
+      document.getElementById("league-rules").textContent =
+        `Reytingga kirish uchun: haftada kamida ${L.minSells} ta sotuv va +${L.minPnl} Nex foyda.`;
+
+      const list = document.getElementById("league-list");
+      const medals = ["🥇","🥈","🥉"];
+      list.innerHTML = L.top.length ? L.top.map(u=>`
+        <div class="league-row ${u.isMe ? "me" : ""}">
+          <div class="league-rank">${medals[u.rank-1] || u.rank}</div>
+          <div class="league-name">${u.username ? "@" + esc(u.username) : "Foydalanuvchi"}${u.isMe ? " (siz)" : ""}</div>
+          <div><div class="league-pnl">+${fmt(u.pnl)}</div><div class="league-prize">🎁 ${fmt(u.prize)}</div></div>
+        </div>`).join("")
+        : `<div class="empty"><div class="empty-icon">🏆</div><div class="empty-title">Hali hech kim yo'q</div><div class="empty-sub">Birinchi bo'lib foyda bilan soting va 1-o'rinni egallang!</div></div>`;
+
+      document.getElementById("league-last").innerHTML = L.lastWinners.length
+        ? `<div class="section-title">O'tgan hafta g'oliblari</div>` + L.lastWinners.map(w=>
+            `<div class="holder-row"><span>${medals[w.rank-1] || w.rank} ${w.username ? "@" + esc(w.username) : "—"}</span><span class="num" style="color:var(--gold);">+${fmt(w.reward)}</span></div>`).join("")
+        : "";
+    }catch(e){ toast(friendlyError(e)); }
+  }
+
+  // --- Ulashish
+  let shareText = "";
+  function openShare(pct, what, text){
+    const pctEl = document.getElementById("share-pct");
+    pctEl.textContent = pct === null ? "🚀" : `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`;
+    pctEl.style.color = pct === null || pct >= 0 ? "#00D68F" : "#FF5C72";
+    document.getElementById("share-what").textContent = what;
+    shareText = text;
+    document.getElementById("share-modal").classList.add("active");
+  }
+  document.getElementById("share-cancel").addEventListener("click", ()=> document.getElementById("share-modal").classList.remove("active"));
+  document.getElementById("share-send").addEventListener("click", ()=>{
+    const url = `https://t.me/share/url?url=${encodeURIComponent(myRefLink())}&text=${encodeURIComponent(shareText)}`;
+    if(tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
+    document.getElementById("share-modal").classList.remove("active");
+  });
+
+  document.getElementById("portfolio-share-btn").addEventListener("click", ()=>{
+    if(!lastPortfolio) return;
+    const p = lastPortfolio.pct;
+    openShare(p, "NexTrade portfelim natijasi",
+      p >= 0
+        ? `📈 Mening NexTrade portfelim ${p.toFixed(1)}% foydada! 🚀\nSen ham qo'shil - tekin 100 Nex bilan boshla 👇`
+        : `📉 NexTrade'da bozor qizg'in! Kel, birga savdo qilamiz 👇`);
+  });
+
+  document.getElementById("detail-share").addEventListener("click", async ()=>{
+    const sym = document.getElementById("detail-symbol").textContent;
+    const name = document.getElementById("detail-name").textContent;
+    let pct = null, what = `${name} ${sym}`, text = `🪙 ${name} (${sym}) NexTrade'da! Ko'r va sotib ol 👇`;
+    try{
+      const holdings = await api(`/user/${currentUser.id}/holdings`);
+      const h = holdings.find(x=> Number(x.token_id) === Number(selectedTokenId));
+      if(h && Number(h.avg_cost) > 0){
+        pct = (Number(h.current_price) - Number(h.avg_cost)) / Number(h.avg_cost) * 100;
+        what = `${name} ${sym} · mening natijam`;
+        text = pct >= 0
+          ? `🚀 Men NexTrade'da ${sym} tokenida ${pct.toFixed(1)}% foyda qildim!\nSen ham sinab ko'r - tekin 100 Nex bilan 👇`
+          : `🪙 ${sym} hozir arzon - sotib olish vaqti! NexTrade'da 👇`;
+      }else if(lastDetailStats){
+        pct = lastDetailStats.change24h;
+        what = `${name} ${sym} · 24 soatda`;
+        text = `${pct >= 0 ? "🚀" : "📉"} ${sym} 24 soatda ${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%! NexTrade'da kuzat 👇`;
+      }
+    }catch(e){ /* jim */ }
+    openShare(pct, what, text);
+  });
+
 
   (async function start(){
     try{

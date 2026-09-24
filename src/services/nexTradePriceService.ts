@@ -40,7 +40,7 @@ export async function getNexTradePriceChart(limit = 100) {
  * Bir tik (tasodifiy tebranish) - priceFluctuationService tomonidan
  * tokenlar bilan bir vaqtda (har 10 soniyada) chaqiriladi.
  */
-export async function tickNexTradePrice(maxChangePct: number) {
+export async function tickNexTradePrice(maxChangePct: number, record = true) {
   const client = await pool.connect();
   try {
     const current = await client.query(
@@ -59,10 +59,12 @@ export async function tickNexTradePrice(maxChangePct: number) {
        ON CONFLICT (id) DO UPDATE SET price = $1, updated_at = NOW()`,
       [newPrice]
     );
-    await client.query(
-      "INSERT INTO nex_trade_price_ticks (price) VALUES ($1)",
-      [newPrice]
-    );
+    if (record) {
+      await client.query(
+        "INSERT INTO nex_trade_price_ticks (price) VALUES ($1)",
+        [newPrice]
+      );
+    }
   } finally {
     client.release();
   }

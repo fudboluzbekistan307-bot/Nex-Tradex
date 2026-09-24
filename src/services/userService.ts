@@ -4,7 +4,6 @@ import { recordBalanceSnapshot } from "./balanceHistoryService";
 
 // .env faylida INITIAL_BALANCE, REFERRAL_BONUS, DAILY_BONUS orqali sozlash mumkin
 const INITIAL_NEX_TRADE_BALANCE = Number(process.env.INITIAL_BALANCE ?? 100);
-const REFERRAL_BONUS = Number(process.env.REFERRAL_BONUS ?? 1); // taklif qilgan va qilingan foydalanuvchiga qo'shimcha bonus
 const DAILY_BONUS = Number(process.env.DAILY_BONUS ?? 1); // har 24 soatda bir marta olinadigan bonus
 
 export interface User {
@@ -50,24 +49,20 @@ export async function getOrCreateUser(
   try {
     await client.query("BEGIN");
 
+    // Referal: faqat kim taklif qilganini yozib qo'yamiz. Bonus endi DARHOL
+    // emas, taklif qilingan do'st BIRINCHI SAVDOSINI qilganda beriladi
+    // (engagementService.rewardReferralOnFirstTrade) - soxta akkaunt ochib
+    // bonus yig'ish foyda bermasligi uchun.
     let referrerId: number | null = null;
     if (referrerTelegramId && referrerTelegramId !== telegramId) {
       const referrer = await client.query<User>(
-        "SELECT * FROM users WHERE telegram_id = $1 FOR UPDATE",
+        "SELECT id FROM users WHERE telegram_id = $1",
         [referrerTelegramId]
       );
-      if (referrer.rows.length > 0) {
-        referrerId = referrer.rows[0].id;
-        const referrerRes = await client.query(
-          "UPDATE users SET nex_trade_balance = nex_trade_balance + $1 WHERE id = $2 RETURNING nex_trade_balance",
-          [REFERRAL_BONUS, referrerId]
-        );
-        await recordBalanceSnapshot(referrerId, referrerRes.rows[0].nex_trade_balance, client);
-      }
+      if (referrer.rows.length > 0) referrerId = referrer.rows[0].id;
     }
 
-    const initialBalance =
-      INITIAL_NEX_TRADE_BALANCE + (referrerId ? REFERRAL_BONUS : 0);
+    const initialBalance = INITIAL_NEX_TRADE_BALANCE;
 
     // XATOLIK TUZATILDI: avval hamyon kodi SQL ichida MD5($1::text ...) bilan
     // yasalardi - $1 bir so'rovda ham BIGINT (telegram_id), ham TEXT sifatida

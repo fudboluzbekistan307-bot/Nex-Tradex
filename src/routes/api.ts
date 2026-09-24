@@ -1,17 +1,14 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
-import { getUserHoldings, getReferralCount, getUserLeaderboard, claimDailyBonus } from "../services/userService";
+import { getUserHoldings, getReferralCount, getUserLeaderboard } from "../services/userService";
 import { getBalanceHistory } from "../services/balanceHistoryService";
 import {
   createToken,
   getToken,
-  listTopTokens,
-  getFeaturedTokens,
   listLeaderboard,
   getTokenHistory,
   getTokenChartData,
   getTokensByOwner,
-  searchTokens,
   boostToken,
   getTradeQuote,
   upgradeTokenToPro,
@@ -34,6 +31,9 @@ import { getTopupWithdrawInfo, topupNexTradex, withdrawNexTradex } from "../serv
 import { floor4 } from "../services/pricingService";
 import { requireAuth, requireSelf, requireAdmin } from "../middleware/auth";
 import { sendTelegramMessage } from "../bot/bot";
+import { listTokensWithStats, getTokenStats, getTokenChartRange, getNexTradeChartRange, MarketSort } from "../services/marketService";
+import { getStreakStatus, claimStreakBonus, getMissions, claimMission, getLeague, REFERRAL_REWARD } from "../services/engagementService";
+import { announceNewToken } from "../services/announceService";
 
 export const apiRouter = Router();
 
@@ -83,15 +83,24 @@ apiRouter.get("/pro-badge-cost", (_req, res) => {
   res.json({ cost: getProBadgeCost() });
 });
 
+// Bozor: ?sort=trend|new|volume|price, ?q=qidiruv. Har bir token bilan
+// change_24h (%) va volume_24h qaytadi.
 apiRouter.get("/tokens", ah(async (req, res) => {
   const q = typeof req.query.q === "string" ? req.query.q.trim().slice(0, 64) : "";
-  const tokens = q ? await searchTokens(q) : await listTopTokens();
+  const sort = (typeof req.query.sort === "string" ? req.query.sort : "trend") as MarketSort;
+  const tokens = q
+    ? await listTokensWithStats({ search: q, sort })
+    : await listTokensWithStats({ featured: false, sort });
   res.json(tokens);
 }));
 
 apiRouter.get("/tokens/featured", ah(async (_req, res) => {
-  res.json(await getFeaturedTokens());
+  res.json(await listTokensWithStats({ featured: true, sort: "price" }));
 }));
+
+apiRouter.get("/referral-info", (_req, res) => {
+  res.json({ reward: REFERRAL_REWARD });
+});
 
 apiRouter.get("/tokens/:id", ah(async (req, res) => {
   const token = await getToken(Number(req.params.id));
@@ -110,8 +119,15 @@ apiRouter.get("/tokens/:id/history", ah(async (req, res) => {
   res.json(await getTokenHistory(Number(req.params.id)));
 }));
 
+// Grafik: ?range=1h|24h|7d (range bo'lmasa - eski usul, oxirgi 100 nuqta)
 apiRouter.get("/tokens/:id/chart", ah(async (req, res) => {
-  res.json(await getTokenChartData(Number(req.params.id)));
+  const range = typeof req.query.range === "string" ? req.query.range : "";
+  res.json(range ? await getTokenChartRange(Number(req.params.id), range) : await getTokenChartData(Number(req.params.id)));
+}));
+
+// Token sahifasi statistikasi: 24s o'zgarish, hajm, egalar, top-5 ega
+apiRouter.get("/tokens/:id/stats", ahUser(async (req, res) => {
+  res.json(await getTokenStats(Number(req.params.id)));
 }));
 
 apiRouter.get("/leaderboard", ah(async (_req, res) => {
@@ -126,8 +142,9 @@ apiRouter.get("/nextrade/price", ah(async (_req, res) => {
   res.json(await getNexTradePrice());
 }));
 
-apiRouter.get("/nextrade/chart", ah(async (_req, res) => {
-  res.json(await getNexTradePriceChart());
+apiRouter.get("/nextrade/chart", ah(async (req, res) => {
+  const range = typeof req.query.range === "string" ? req.query.range : "";
+  res.json(range ? await getNexTradeChartRange(range) : await getNexTradePriceChart());
 }));
 
 apiRouter.get("/nextrade/topup-info", ah(async (_req, res) => {
@@ -160,8 +177,22 @@ apiRouter.get("/user/:userId/holdings", ah(async (req, res) => {
   res.json(await getUserHoldings(uid(req)));
 }));
 
+// Kunlik bonus endi SERIYA (streak) bilan: ketma-ket kunlar uchun o'sib boradi
+apiRouter.get("/user/:userId/streak", ahUser(async (req, res) => {
+  res.json(await getStreakStatus(uid(req)));
+}));
+
 apiRouter.post("/user/:userId/daily-bonus", ahUser(async (req, res) => {
-  res.json(await claimDailyBonus(uid(req)));
+  res.json(await claimStreakBonus(uid(req)));
+}));
+
+// Vazifalar
+apiRouter.get("/user/:userId/missions", ahUser(async (req, res) => {
+  res.json(await getMissions(uid(req)));
+}));
+
+apiRouter.post("/user/:userId/missions/:missionId/claim", ahUser(async (req, res) => {
+  res.json(await claimMission(uid(req), String(req.params.missionId)));
 }));
 
 apiRouter.get("/user/:userId/balance-history", ah(async (req, res) => {
@@ -246,6 +277,8 @@ apiRouter.post("/tokens", ahUser(async (req, res) => {
     parsed.data.image_url
   );
   res.json(token);
+  // Kanalga e'lon (ANNOUNCE_CHAT_ID sozlangan bo'lsa) - javobni kutdirmaymiz
+  announceNewToken(token, req.user!.username).catch(() => {});
 }));
 
 apiRouter.post("/tokens/:id/boost", ahUser(async (req, res) => {
@@ -296,6 +329,11 @@ apiRouter.delete("/alerts", ahUser(async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: "Ma'lumotlar noto'g'ri kiritildi" });
   await unsubscribeAlert(uid(req), parsed.data.token_id);
   res.json({ ok: true });
+}));
+
+// ---------- Haftalik liga ----------
+apiRouter.get("/league", ah(async (req, res) => {
+  res.json(await getLeague(uid(req)));
 }));
 
 // ---------- YANGI: Nex Tradex to'ldirish / chiqarish ----------
