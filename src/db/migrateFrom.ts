@@ -41,6 +41,8 @@ const TABLES = [
   "wheel_spins",
   "token_comments",
   "limit_orders",
+  "promo_chats",
+  "bot_settings",
 ];
 
 const BATCH = 500;

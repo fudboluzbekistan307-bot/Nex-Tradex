@@ -7,7 +7,8 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import { webhookCallback } from "grammy";
 import { apiRouter } from "./routes/api";
-import { bot, setupBotMenu } from "./bot/bot";
+import { bot, setupBotMenu, promoSender } from "./bot/bot";
+import { startPromoScheduler } from "./services/promoService";
 import { startPriceFluctuations, stopPriceFluctuations } from "./services/priceFluctuationService";
 import { ensureSchema } from "./db/ensureSchema";
 import { migrateFromOldDatabase } from "./db/migrateFrom";
@@ -80,6 +81,9 @@ async function startBot() {
   }
 
   await setupBotMenu().catch((err) => console.error("⚠️ Bot menyusini sozlab bo'lmadi:", err?.description ?? err));
+
+  // Guruh va kanallarga avtomatik reklama
+  startPromoScheduler(promoSender);
 }
 
 async function bootstrap() {

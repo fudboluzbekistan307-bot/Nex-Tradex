@@ -5,6 +5,10 @@ import { claimStreakBonus, getLeague, REFERRAL_REWARD } from "../services/engage
 import { setBanned, isBannedTelegram, hideToken, deleteComment, getBroadcastTargets, markBotBlocked } from "../services/moderationService";
 import { applyStarsPayment, parsePayload, validateStarsPurchase } from "../services/featuresService";
 import { pool } from "../db/pool";
+import {
+  registerChat, deactivateChat, setChatActive, setChatInterval, listPromoChats, sendPromoToChat,
+  setSetting, getPromoText, DEFAULT_PROMO_TEXT, MIN_INTERVAL_MINUTES, parseIntervalMinutes, formatInterval, PromoSender,
+} from "../services/promoService";
 import { listFrozenBalances, getTotalFrozen, withdrawFrozen } from "../services/frozenService";
 
 dotenv.config();
@@ -357,6 +361,174 @@ bot.command("xabar", async (ctx) => {
     }
     broadcasting = false;
     await bot.api.sendMessage(adminChat, `✅ Xabar yuborildi: ${ok} ta\n🚫 Botni bloklagan: ${blocked} ta\n⚠️ Xato: ${failed} ta`).catch(() => {});
+  })();
+});
+
+// ====================== GURUH/KANAL REKLAMASI ======================
+export const promoSender: PromoSender = {
+  async sendPhoto(chatId, photo, caption, button) {
+    const msg: any = await bot.api.sendPhoto(chatId, photo, {
+      caption,
+      reply_markup: { inline_keyboard: [[{ text: button.text, url: button.url }]] },
+    });
+    const sizes = msg?.photo ?? [];
+    return { fileId: sizes.length ? sizes[sizes.length - 1].file_id : undefined, messageId: msg?.message_id };
+  },
+  async sendText(chatId, text, button) {
+    const msg: any = await bot.api.sendMessage(chatId, text, {
+      reply_markup: { inline_keyboard: [[{ text: button.text, url: button.url }]] },
+    });
+    return { messageId: msg?.message_id };
+  },
+  async deleteMessage(chatId, messageId) {
+    await bot.api.deleteMessage(chatId, messageId);
+  },
+};
+
+// Bot guruh/kanalga qo'shilganda yoki chiqarilganda Telegram shu xabarni yuboradi
+bot.on("my_chat_member", async (ctx) => {
+  const upd: any = (ctx as any).myChatMember;
+  const chat = upd?.chat;
+  if (!chat || chat.type === "private") return;
+  const status = upd.new_chat_member?.status;
+  if (status === "member" || status === "administrator") {
+    const wasIn = ["member", "administrator"].includes(upd.old_chat_member?.status);
+    await registerChat(chat.id, chat.title, chat.type);
+    if (!wasIn) {
+      console.log(`➕ Bot qo'shildi: ${chat.title} (${chat.id})`);
+      if (ADMIN_TELEGRAM_ID) {
+        await sendTelegramMessage(ADMIN_TELEGRAM_ID, `➕ Bot yangi ${chat.type === "channel" ? "kanalga" : "guruhga"} qo'shildi: ${chat.title ?? chat.id}`);
+      }
+      // Birinchi reklamani bir necha soniyadan keyin yuboramiz (huquqlar o'rnatilishi uchun)
+      setTimeout(() => sendPromoToChat(chat.id, promoSender).catch(() => {}), 5000);
+    }
+  } else if (status === "left" || status === "kicked") {
+    await deactivateChat(chat.id);
+    console.log(`➖ Bot chiqarildi: ${chat.title} (${chat.id})`);
+  }
+});
+
+/** Guruhda buyruq yozgan odam shu guruh admini ekanini tekshiradi. */
+async function isChatAdmin(ctx: any): Promise<boolean> {
+  const chat = ctx.chat;
+  if (!chat || chat.type === "private") return false;
+  if (chat.type === "channel") return true; // kanalda faqat adminlar yoza oladi
+  if (ctx.message?.sender_chat?.id === chat.id) return true; // anonim admin
+  if (ctx.from?.id === ADMIN_TELEGRAM_ID) return true;
+  try {
+    const m: any = await bot.api.getChatMember(chat.id, ctx.from.id);
+    return m.status === "creator" || m.status === "administrator";
+  } catch {
+    return false;
+  }
+}
+
+bot.command("reklama_vaqt", async (ctx) => {
+  if (!(await isChatAdmin(ctx))) return;
+  const m = parseIntervalMinutes(arg(ctx));
+  if (!m) {
+    return void (await ctx.reply(
+      `Format:\n/reklama_vaqt 10 — har 10 daqiqada\n/reklama_vaqt 2 soat — har 2 soatda\n(kamida ${MIN_INTERVAL_MINUTES} daqiqa)`
+    ));
+  }
+  try {
+    const set = await setChatInterval(ctx.chat!.id, m);
+    await ctx.reply(`✅ Endi reklama har ${formatInterval(set)}da bir marta yuboriladi`);
+  } catch (err: any) {
+    await ctx.reply(`⚠️ ${err.message}`);
+  }
+});
+
+bot.command("reklama_stop", async (ctx) => {
+  if (!(await isChatAdmin(ctx))) return;
+  await setChatActive(ctx.chat!.id, false);
+  await ctx.reply("⏸ Bu chatda avtomatik reklama to'xtatildi. Qayta yoqish: /reklama_start");
+});
+
+bot.command("reklama_start", async (ctx) => {
+  if (!(await isChatAdmin(ctx))) return;
+  const chat: any = ctx.chat;
+  await registerChat(chat.id, chat.title, chat.type);
+  await ctx.reply("▶️ Avtomatik reklama yoqildi. Oraliqni o'zgartirish: /reklama_vaqt 30 (daqiqa) yoki /reklama_vaqt 2 soat");
+});
+
+// --- Bot egasi uchun ---
+bot.command("reklama_matn", async (ctx) => {
+  if (!adminOnly(ctx)) return;
+  const replied: any = ctx.message?.reply_to_message;
+  const text = arg(ctx) || replied?.text || replied?.caption || "";
+  if (!text) {
+    const cur = await getPromoText();
+    return void (await ctx.reply(
+      `📝 Joriy reklama matni:\n\n${cur}\n\n` +
+        `O'zgartirish: /reklama_matn Yangi matn (yoki matnga reply qilib /reklama_matn)\nStandartga qaytarish: /reklama_matn standart`
+    ));
+  }
+  if (text.trim().toLowerCase() === "standart") {
+    await setSetting("promo_text", null);
+    return void (await ctx.reply("✅ Standart matn tiklandi"));
+  }
+  if (text.length > 1024) return void (await ctx.reply(`⚠️ Matn juda uzun (${text.length}). Rasm ostidagi matn 1024 belgidan oshmasin`));
+  await setSetting("promo_text", text);
+  await ctx.reply("✅ Reklama matni yangilandi. Ko'rish uchun: /reklama_test");
+});
+
+bot.command("reklama_rasm", async (ctx) => {
+  if (!adminOnly(ctx)) return;
+  const replied: any = ctx.message?.reply_to_message;
+  if (arg(ctx).toLowerCase() === "standart") {
+    await setSetting("promo_photo_file_id", null);
+    return void (await ctx.reply("✅ Standart rasm (promo.jpg) tiklandi"));
+  }
+  const photos = replied?.photo;
+  if (!photos?.length) return void (await ctx.reply("Rasmni botga yuboring, keyin o'sha rasmga reply qilib /reklama_rasm yozing"));
+  await setSetting("promo_photo_file_id", photos[photos.length - 1].file_id);
+  await ctx.reply("✅ Reklama rasmi yangilandi. Ko'rish uchun: /reklama_test");
+});
+
+bot.command("reklama_test", async (ctx) => {
+  if (!adminOnly(ctx)) return;
+  const text = await getPromoText();
+  try {
+    const { getSetting } = await import("../services/promoService");
+    const fileId = await getSetting("promo_photo_file_id");
+    const base = (process.env.WEBHOOK_URL ?? process.env.RENDER_EXTERNAL_URL ?? process.env.MINI_APP_URL ?? "").replace(/\/+$/, "");
+    const photo = fileId ?? `${base}/promo.jpg`;
+    await promoSender.sendPhoto(ctx.chat!.id, photo, text.slice(0, 1024), {
+      text: "🚀 O'yinni boshlash",
+      url: `https://t.me/${BOT_USERNAME}?start=promo`,
+    });
+  } catch (err: any) {
+    await ctx.reply(`⚠️ Rasm yuborilmadi: ${err?.description ?? err?.message}\n\n${text}`);
+  }
+});
+
+bot.command("reklamalar", async (ctx) => {
+  if (!adminOnly(ctx)) return;
+  const chats = await listPromoChats();
+  const active = chats.filter((c: any) => c.is_active);
+  const lines = active.slice(0, 30).map((c: any) =>
+    `• ${c.title ?? c.chat_id} (${c.chat_type === "channel" ? "kanal" : "guruh"}) — har ${formatInterval(c.interval_minutes)}, ${c.posts_sent} ta post`
+  );
+  await ctx.reply(
+    `📢 Reklama chatlari: ${active.length} ta faol, ${chats.length - active.length} ta o'chgan\n\n` +
+      (lines.join("\n") || "Hali bot hech qaysi guruh yoki kanalga qo'shilmagan") +
+      `\n\nHammasiga hozir yuborish: /reklama_hozir`
+  );
+});
+
+bot.command("reklama_hozir", async (ctx) => {
+  if (!adminOnly(ctx)) return;
+  const chats = (await listPromoChats()).filter((c: any) => c.is_active);
+  await ctx.reply(`📤 ${chats.length} ta chatga yuborilmoqda...`);
+  const adminChat = ctx.chat!.id;
+  (async () => {
+    let ok = 0;
+    for (const c of chats) {
+      if (await sendPromoToChat(Number(c.chat_id), promoSender)) ok++;
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    await bot.api.sendMessage(adminChat, `✅ Reklama ${ok}/${chats.length} ta chatga yuborildi`).catch(() => {});
   })();
 });
 

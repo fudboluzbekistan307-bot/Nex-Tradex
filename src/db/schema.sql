@@ -383,3 +383,26 @@ CREATE TABLE IF NOT EXISTS limit_orders (
 );
 CREATE INDEX IF NOT EXISTS idx_limit_orders_open ON limit_orders(token_id, status);
 CREATE INDEX IF NOT EXISTS idx_limit_orders_user ON limit_orders(user_id, status);
+
+-- ====== v5: GURUH/KANALLARDA AVTOMATIK REKLAMA ======
+-- Bot qo'shilgan guruh va kanallar. Har biriga interval_hours da bir marta reklama yuboriladi.
+CREATE TABLE IF NOT EXISTS promo_chats (
+    chat_id BIGINT PRIMARY KEY,
+    title VARCHAR(255),
+    chat_type VARCHAR(16) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    interval_hours INTEGER NOT NULL DEFAULT 24,
+    posts_sent INTEGER NOT NULL DEFAULT 0,
+    last_post_at TIMESTAMP,
+    added_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Bot sozlamalari (reklama matni, rasm file_id va h.k.)
+CREATE TABLE IF NOT EXISTS bot_settings (
+    key VARCHAR(64) PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+-- v5.1: reklama oralig'i daqiqalarda + oldingi reklamani o'chirish uchun xabar ID
+ALTER TABLE promo_chats ADD COLUMN IF NOT EXISTS interval_minutes INTEGER NOT NULL DEFAULT 10;
+ALTER TABLE promo_chats ADD COLUMN IF NOT EXISTS last_message_id BIGINT;
