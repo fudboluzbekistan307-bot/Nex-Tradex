@@ -1,0 +1,115 @@
+import dotenv from "dotenv";
+dotenv.config();
+
+import path from "path";
+import crypto from "crypto";
+import express, { Request, Response, NextFunction } from "express";
+import cors from "cors";
+import { webhookCallback } from "grammy";
+import { apiRouter } from "./routes/api";
+import { bot, setupBotMenu } from "./bot/bot";
+import { startPriceFluctuations, stopPriceFluctuations } from "./services/priceFluctuationService";
+import { ensureSchema } from "./db/ensureSchema";
+import { pool } from "./db/pool";
+
+const app = express();
+app.set("trust proxy", 1);
+app.disable("x-powered-by");
+app.use(cors());
+app.use(express.json({ limit: "100kb" }));
+
+app.use("/api", apiRouter);
+
+// /api ostidagi mavjud bo'lmagan yo'llar uchun HTML emas, JSON qaytaramiz -
+// aks holda frontend "Server javobi noto'g'ri formatda" deb chiqarardi.
+app.use("/api", (_req: Request, res: Response) => {
+  res.status(404).json({ error: "Bunday API manzili topilmadi" });
+});
+
+// Mini App'ning o'zini ham shu serverdan beramiz (public/index.html).
+// Shunda MINI_APP_URL = https://<render-nomi>.onrender.com bo'lishi mumkin.
+app.use(express.static(path.join(__dirname, "..", "public"), { maxAge: "5m" }));
+
+// Umumiy xato ishlovchi - kutilmagan xatolar ham JSON ko'rinishida qaytadi
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error("❌ Server xatosi:", err);
+  if (res.headersSent) return;
+  res.status(500).json({ error: "Serverda xatolik yuz berdi. Birozdan so'ng qayta urinib ko'ring" });
+});
+
+const PORT = Number(process.env.PORT ?? 3000);
+const BOT_TOKEN = process.env.BOT_TOKEN ?? "";
+
+// Render o'zi RENDER_EXTERNAL_URL ni beradi. Agar u (yoki WEBHOOK_URL) bo'lsa -
+// bot WEBHOOK rejimida ishlaydi. Bu Render bepul tarifida juda muhim:
+// server "uxlab" qolganda polling to'xtaydi va bot javob bermay qo'yardi.
+// Webhook'da esa Telegram so'rovining o'zi serverni uyg'otadi.
+const PUBLIC_URL = (process.env.WEBHOOK_URL ?? process.env.RENDER_EXTERNAL_URL ?? "").replace(/\/+$/, "");
+const USE_WEBHOOK = Boolean(PUBLIC_URL) && process.env.BOT_MODE !== "polling";
+
+async function startBot() {
+  if (!BOT_TOKEN) {
+    console.warn("⚠️ BOT_TOKEN yo'q - bot ishga tushirilmadi");
+    return;
+  }
+
+  await bot.init();
+
+  if (USE_WEBHOOK) {
+    const secret = crypto.createHash("sha256").update(BOT_TOKEN).digest("hex").slice(0, 32);
+    const hookPath = `/tg-webhook/${secret}`;
+    app.post(hookPath, webhookCallback(bot, "express", { secretToken: secret }));
+    await bot.api.setWebhook(`${PUBLIC_URL}${hookPath}`, {
+      secret_token: secret,
+      drop_pending_updates: false,
+    });
+    console.log("✅ Telegram bot WEBHOOK rejimida ishga tushdi");
+  } else {
+    await bot.api.deleteWebhook().catch(() => {});
+    // Deploy paytida eski nusxa hali ishlayotgan bo'lsa 409 xato bo'ladi -
+    // jarayonni yiqitmasdan qayta urinamiz.
+    const run = () =>
+      bot.start({ drop_pending_updates: false }).catch((err) => {
+        console.error("⚠️ Bot polling xatosi, 10 soniyadan keyin qayta urinamiz:", err?.description ?? err);
+        setTimeout(run, 10_000);
+      });
+    run();
+    console.log("✅ Telegram bot POLLING rejimida ishga tushdi");
+  }
+
+  await setupBotMenu().catch((err) => console.error("⚠️ Bot menyusini sozlab bo'lmadi:", err?.description ?? err));
+}
+
+async function bootstrap() {
+  await ensureSchema();
+
+  const server = app.listen(PORT, () => {
+    console.log(`✅ Server ${PORT}-portda ishga tushdi`);
+  });
+
+  try {
+    await startBot();
+  } catch (err) {
+    console.error("❌ Botni ishga tushirishda xato:", err);
+  }
+
+  startPriceFluctuations();
+
+  const shutdown = async (signal: string) => {
+    console.log(`⏹  ${signal} - to'xtatilmoqda...`);
+    stopPriceFluctuations();
+    if (!USE_WEBHOOK) await bot.stop().catch(() => {});
+    server.close();
+    await pool.end().catch(() => {});
+    process.exit(0);
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
+}
+
+process.on("unhandledRejection", (err) => {
+  console.error("⚠️ Ushlanmagan xato (unhandledRejection):", err);
+});
+
+bootstrap();
